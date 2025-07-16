@@ -1,0 +1,29 @@
+{
+  "app": {
+    "security": {
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "**"
+        ]
+      },
+      "csp": {
+        "default-src": "'self' customprotocol: asset:",
+        "connect-src": "ipc: http://ipc.localhost",
+        "img-src": "'self' asset: http://asset.localhost blob: data:",
+        "media-src":"'self' asset: http://asset.localhost",
+        "style-src": "'unsafe-inline' 'self'"
+      }
+    },
+    "withGlobalTauri": true
+  },
+  "build": {
+    "beforeBuildCommand": "yarn build",
+    "beforeDevCommand": "yarn dev",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "identifier": "com.pic.dev",
+  "productName": "pic",
+  "version": "0.0.1"
+}

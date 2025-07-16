@@ -1,0 +1,111 @@
+
+.close{
+    font-size: 20px;
+    line-height: 25px;
+}
+
+.close:hover{
+    background-color: var(--secondary-highlight-color);
+    color: var(--primary-forecolor);
+}
+
+.separator{
+    width: 1px;
+    height: 20px;
+    margin: 0 10px;
+    border-left: 1px solid var(--edit-menu-separator-color);
+    pointer-events: none;
+}
+
+.is-icon .clip,
+.is-icon .resize,
+.is-icon.resized .resize,
+.is-icon .save,
+.is-icon .save-copy{
+    color: var(--button-disabled);
+    pointer-events: none;
+}
+
+.clipping .clip{
+    background-color: var(--clip-bgcolor);
+}
+
+.resize{
+    color: var(--button-disabled);
+    pointer-events: none;
+}
+
+.resized .resize{
+    color: var(--menu-color);
+    pointer-events:auto;
+}
+
+.undo,
+.redo{
+    color: var(--button-disabled);
+    pointer-events: none;
+}
+
+.can-undo .undo{
+    color: var(--menu-color);
+    pointer-events:auto;
+}
+
+.can-redo .redo{
+    color: var(--menu-color);
+    pointer-events:auto;
+}
+
+.shrink{
+    position: relative;
+}
+
+.shrinkable .shrink{
+    background-color: var(--button-selected);
+}
+
+.save-copy,
+.save{
+    color: var(--button-disabled);
+    pointer-events: none;
+}
+
+.edited .save-copy,
+.edited .save{
+    color: var(--menu-color);
+    pointer-events:auto;
+}
+
+.scale-text{
+    font-size: 14px;
+    margin: 0px 15px;
+    position: relative;
+    width: 100%;
+}
+
+.image-area{
+    margin: 15px;
+}
+
+.clip-canvas{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 0px;
+    height: 0px;
+    background-color: var(--clip-canvas-bgcolor);
+    opacity: 0.5;
+    z-index: 100;
+    mix-blend-mode: hard-light;
+}
+
+.clip-area{
+    position: fixed;
+    background-color: var(--clip-area-bgcolor);
+    opacity: 0.5;
+    z-index: 200;
+    width: 0px;
+    height: 0px;
+    transform-origin: top left;
+}
+
