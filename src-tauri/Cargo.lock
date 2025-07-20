@@ -1891,7 +1891,7 @@ dependencies = [
 [[package]]
 name = "libvips"
 version = "1.7.0"
-source = "git+https://github.com/mrdkprj/libvips-rs-msvc.git?rev=0df9bd13bef67500864c6dac9287f5af8f7b5730#0df9bd13bef67500864c6dac9287f5af8f7b5730"
+source = "git+https://github.com/mrdkprj/libvips-rs-msvc.git?rev=f1f13ec0cf8307b3231bdca1cb2c95e0d5df20e2#f1f13ec0cf8307b3231bdca1cb2c95e0d5df20e2"
 dependencies = [
  "num-derive",
  "num-traits",
@@ -3308,7 +3308,7 @@ dependencies = [
 [[package]]
 name = "sharp"
 version = "0.1.0"
-source = "git+https://github.com/mrdkprj/sharp-rs.git?rev=c770d1f9fdf0d1d91881fe4356c0d33dacfa8e07#c770d1f9fdf0d1d91881fe4356c0d33dacfa8e07"
+source = "git+https://github.com/mrdkprj/sharp-rs.git?rev=b162a51f47c88d9ddc4503ff5926aa04e79be211#b162a51f47c88d9ddc4503ff5926aa04e79be211"
 dependencies = [
  "async-std",
  "libvips",

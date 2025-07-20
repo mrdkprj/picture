@@ -17,7 +17,7 @@ once_cell = "1.19.0"
 async-std = "1.13.0"
 wcpopup = "0.7.0"
 nonstd = { git = "https://github.com/mrdkprj/nonstd.git", rev="cc31907d4805514ade3d0ff0d6c8d78a6cbbe752", features = ["webview2"] }
-sharp = { git = "https://github.com/mrdkprj/sharp-rs.git", rev="c770d1f9fdf0d1d91881fe4356c0d33dacfa8e07" }
+sharp = { git = "https://github.com/mrdkprj/sharp-rs.git", rev="b162a51f47c88d9ddc4503ff5926aa04e79be211" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

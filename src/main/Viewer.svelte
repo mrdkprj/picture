@@ -616,7 +616,7 @@
         const files = await ipc.invoke("get_init_args", undefined);
 
         if (files.length) {
-            await loadFiles(files[1]);
+            return await loadFiles(files[0]);
         }
 
         if ($appState.settings.fullPath) {
