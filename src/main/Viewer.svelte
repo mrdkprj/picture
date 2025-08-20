@@ -34,30 +34,35 @@
 
         const imageFile = $appState.currentImageFile;
 
-        const metadataString = await util.getMetadata(imageFile.fullPath);
+        try {
+            const metadataString = await util.getMetadata(imageFile.fullPath);
 
-        const metadata = JSON.parse(metadataString);
+            const metadata = JSON.parse(metadataString);
 
-        imageFile.detail.orientation = metadata.orientation ?? 1;
+            imageFile.detail.orientation = metadata.orientation ?? 1;
 
-        const { width = 0, height = 0 } = metadata;
+            const { width = 0, height = 0 } = metadata;
 
-        imageFile.detail.width = width;
-        imageFile.detail.height = height;
-        const orientation = metadata.orientation ?? 1;
-        imageFile.detail.renderedWidth = orientation % 2 === 0 ? height : width;
-        imageFile.detail.renderedHeight = orientation % 2 === 0 ? width : height;
-        if (path.extname(imageFile.fullPath) == ".ico") {
-            imageFile.detail.format = "ico";
-        } else {
-            imageFile.detail.format = metadata.format;
+            imageFile.detail.width = width;
+            imageFile.detail.height = height;
+            const orientation = metadata.orientation ?? 1;
+            imageFile.detail.renderedWidth = orientation % 2 === 0 ? height : width;
+            imageFile.detail.renderedHeight = orientation % 2 === 0 ? width : height;
+            if (path.extname(imageFile.fullPath) == ".ico") {
+                imageFile.detail.format = "ico";
+            } else {
+                imageFile.detail.format = metadata.format;
+            }
+
+            dispatch({ type: "updateImageDetail", value: imageFile.detail });
+        } catch (ex: any) {
+            await util.showErrorMessage(ex);
         }
-
-        dispatch({ type: "updateImageDetail", value: imageFile.detail });
     };
 
     const mainContextMenuCallback = async (e: Pic.ContextMenuEvent) => {
         const id = e.name ? e.name : e.id;
+
         switch (id) {
             case "OpenFile":
                 openFile();
@@ -110,22 +115,27 @@
             return;
         }
 
-        dispatch({ type: "index", value: $appState.currentIndex + index });
+        dispatch({ type: "index", value: index });
         await updateImageDetail();
     };
 
     const fetchFirst = async () => {
-        await fetchImage(0);
+        if ($appState.imageFiles.length) {
+            await fetchImage(0);
+        }
     };
 
     const fetchLast = async () => {
-        await fetchImage($appState.imageFiles.length - 1);
+        if ($appState.imageFiles.length) {
+            await fetchImage($appState.imageFiles.length - 1);
+        }
     };
 
-    const onHistoryItemClick = async (fullPath: string) => {
+    const onHistoryItemClick = async (fullPath: string): Promise<boolean> => {
         let found = await util.exists(fullPath);
         if (found) {
-            return await loadFiles(fullPath);
+            await loadFiles(fullPath);
+            return true;
         }
 
         const directory = path.dirname(fullPath);
@@ -133,7 +143,10 @@
         found = await util.exists(directory);
         if (found) {
             await loadFilesFromDir(directory);
+            return true;
         }
+
+        return false;
     };
 
     const rotate = async () => {
@@ -554,7 +567,7 @@
 
     const startFetch = async (index: number) => {
         if (beforeRequest()) {
-            await fetchImage(index);
+            await fetchImage($appState.currentIndex + index);
             unlock();
         }
     };

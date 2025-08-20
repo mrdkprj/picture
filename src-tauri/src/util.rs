@@ -1,7 +1,11 @@
 #![allow(dead_code)]
 use base64::{engine::general_purpose, Engine};
 use serde::{Deserialize, Serialize};
-use sharp::{operation::Region, FormatEnum, Sharp, WriteableMetadata};
+use sharp::{
+    output::{FormatEnum, WriteableMetadata},
+    resize::Region,
+    Sharp,
+};
 
 fn to_base64(buffer: &[u8]) -> String {
     let mut buf = String::new();

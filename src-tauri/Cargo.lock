@@ -1889,15 +1889,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libvips"
-version = "1.7.0"
-source = "git+https://github.com/mrdkprj/libvips-rs-msvc.git?rev=f1f13ec0cf8307b3231bdca1cb2c95e0d5df20e2#f1f13ec0cf8307b3231bdca1cb2c95e0d5df20e2"
-dependencies = [
- "num-derive",
- "num-traits",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2083,7 +2074,7 @@ checksum = "72ef4a56884ca558e5ddb05a1d1e7e1bfd9a68d9ed024c21704cc98872dae1bb"
 [[package]]
 name = "nonstd"
 version = "0.1.0"
-source = "git+https://github.com/mrdkprj/nonstd.git?rev=cc31907d4805514ade3d0ff0d6c8d78a6cbbe752#cc31907d4805514ade3d0ff0d6c8d78a6cbbe752"
+source = "git+https://github.com/mrdkprj/nonstd.git?rev=0ea291238e1066bbbf4e2eb01f2539a2975b886d#0ea291238e1066bbbf4e2eb01f2539a2975b886d"
 dependencies = [
  "async-std",
  "gio",
@@ -2992,6 +2983,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rs-vips"
+version = "0.1.0"
+source = "git+https://github.com/mrdkprj/rs-vips.git?rev=396779810a4d99722442c99c2fa64c84dc60f429#396779810a4d99722442c99c2fa64c84dc60f429"
+dependencies = [
+ "num-derive",
+ "num-traits",
+]
+
+[[package]]
 name = "rusb"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3308,12 +3308,12 @@ dependencies = [
 [[package]]
 name = "sharp"
 version = "0.1.0"
-source = "git+https://github.com/mrdkprj/sharp-rs.git?rev=b162a51f47c88d9ddc4503ff5926aa04e79be211#b162a51f47c88d9ddc4503ff5926aa04e79be211"
+source = "git+https://github.com/mrdkprj/sharp-rs.git?rev=eb7a3c4e4fc454d94eb57c8021e0cece83404ade#eb7a3c4e4fc454d94eb57c8021e0cece83404ade"
 dependencies = [
  "async-std",
- "libvips",
  "num-derive",
  "num-traits",
+ "rs-vips",
  "serde",
  "strum",
  "strum_macros",

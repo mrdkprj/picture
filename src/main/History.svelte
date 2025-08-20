@@ -7,14 +7,18 @@
         onHistoryItemClick,
     }: {
         onClose: () => void;
-        onHistoryItemClick: (fullPath: string) => void;
+        onHistoryItemClick: (fullPath: string) => Promise<boolean>;
     } = $props();
 
-    const onItemClick = (e: MouseEvent) => {
+    const onItemClick = async (e: MouseEvent) => {
         const fullPath = (e.target as HTMLElement).textContent ?? "";
-        onHistoryItemClick(fullPath);
-        const settings = reconstructHistory(path.dirname(fullPath));
-        dispatch({ type: "settings", value: settings });
+        const result = await onHistoryItemClick(fullPath);
+        if (!result) {
+            const settings = reconstructHistory(path.dirname(fullPath));
+            dispatch({ type: "settings", value: settings });
+        } else {
+            onClose();
+        }
     };
 
     const reconstructHistory = (directory: string): Pic.Settings => {
@@ -55,18 +59,17 @@
     <ul id="history" class="history">
         {#each Object.entries($appState.settings.history) as [key, value]}
             <li>
-                <div class="remove-history-btn" onclick={removeHistory} onkeydown={handelKeydown} role="button" tabindex="-1">&times;</div>
+                <div class="remove-history-btn" onclick={removeHistory} onkeydown={handelKeydown} role="button" tabindex="-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
+                        <path
+                            fill-rule="evenodd"
+                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                        />
+                    </svg>
+                </div>
                 <div class="history-item" title={`${key}\\${value}`} ondblclick={onItemClick} onkeydown={handelKeydown} role="button" tabindex="-1">
                     <div>{`${key}\\${value}`}</div>
-                    <div>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
-                            <path
-                                fill-rule="evenodd"
-                                d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-                            />
-                        </svg>
-                    </div>
                 </div>
             </li>
         {/each}

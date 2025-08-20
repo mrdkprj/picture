@@ -118,12 +118,12 @@
     align-items: center;
 }
 
-.history li:hover{
+.history .history-item:hover{
     background-color: var(--secondary-button-hover-color);
 }
 
 .remove-history-btn{
-    width: 20px;
+    width: 16px;
     padding: 5px 0;
     display: flex;
     justify-content: center;
@@ -131,8 +131,7 @@
 }
 
 .remove-history-btn:hover{
-    font-weight: bold;
-    text-decoration: underline;
+    color: red;
 }
 
 .history-item{
