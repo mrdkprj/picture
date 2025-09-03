@@ -65,30 +65,36 @@ type RotateArgs = {
     degree: number;
 };
 
+type ToBufferArgs = {
+    file_path: string;
+    format: string;
+};
+
 type ResizeArgs = {
-    file_path?: string;
-    base64?: string;
+    file: string;
+    is_buffer: boolean;
     width: number;
     height: number;
 };
 
 type ClipArgs = {
-    file_path?: string;
-    base64?: string;
+    file: string;
+    is_buffer: boolean;
     left: number;
     top: number;
     width: number;
     height: number;
 };
 
-type ToBufferArgs = {
-    file_path: string;
-    format: string;
+type ToIconArgs = {
+    file: string;
+    is_buffer: boolean;
+    out_path: string;
 };
 
-type ToIconArgs = {
-    file_path: string;
-    out_path: string;
+type MetadataRequest = {
+    file: string;
+    is_buffer: boolean;
 };
 
 type UtimesArgs = {
@@ -130,7 +136,7 @@ type TauriCommandMap = {
     rotate: TauriCommand<RotateArgs, string>;
     resize: TauriCommand<ResizeArgs, string>;
     clip: TauriCommand<ClipArgs, string>;
-    metadata: TauriCommand<string, string>;
+    metadata: TauriCommand<MetadataRequest, string>;
     to_buffer: TauriCommand<ToBufferArgs, string>;
     to_icon: TauriCommand<ToIconArgs, undefined>;
     utimes: TauriCommand<UtimesArgs, undefined>;

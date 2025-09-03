@@ -2,6 +2,14 @@
     import { onMount } from "svelte";
     import Loader from "../Loader.svelte";
     import icon from "../assets/icon.ico";
+    import ChangeSize from "../assets/ChangeSize.svelte";
+    import Clip from "../assets/Clip.svelte";
+    import Redo from "../assets/Redo.svelte";
+    import Resize from "../assets/Resize.svelte";
+    import Save from "../assets/Save.svelte";
+    import SaveCopy from "../assets/SaveCopy.svelte";
+    import Shrink from "../assets/Shrink.svelte";
+    import Undo from "../assets/Undo.svelte";
     import { appState, dispatch } from "./appStateReducer";
     import { ImageTransform } from "../imageTransform";
     import { BROWSER_SHORTCUT_KEYS, OrientationName } from "../constants";
@@ -27,20 +35,42 @@
         return { file: imageFile.fullPath, type: imageFile.type, format: imageFile.detail.format };
     };
 
-    const endEditImage = (result: string, imageFile: Pic.ImageFile, width: number, height: number) => {
-        (imageFile.fullPath = result), (imageFile.type = "buffer"), (imageFile.detail.width = width), (imageFile.detail.height = height);
-        imageFile.detail.renderedWidth = imageFile.detail.orientation % 2 === 0 ? height : width;
-        imageFile.detail.renderedHeight = imageFile.detail.orientation % 2 === 0 ? width : height;
-        return imageFile;
+    const endEditImage = async (result: string, imageFile: Pic.ImageFile) => {
+        imageFile.fullPath = result;
+        imageFile.type = "buffer";
+
+        try {
+            const metadataString = await util.getMetadata(result, true);
+            const metadata = JSON.parse(metadataString);
+
+            imageFile.detail.orientation = metadata.orientation == 0 ? 1 : metadata.orientation;
+
+            const { width = 0, height = 0 } = metadata;
+
+            imageFile.detail.width = width;
+            imageFile.detail.height = height;
+            const orientation = metadata.orientation == 0 ? 1 : metadata.orientation;
+            imageFile.detail.renderedWidth = orientation % 2 === 0 ? height : width;
+            imageFile.detail.renderedHeight = orientation % 2 === 0 ? width : height;
+            if (path.extname(imageFile.fullPath) == ".ico") {
+                imageFile.detail.format = "ico";
+            } else {
+                imageFile.detail.format = metadata.format;
+            }
+            return imageFile;
+        } catch (ex: any) {
+            await util.showErrorMessage(ex);
+            return imageFile;
+        }
     };
 
     const clipImage = async (rect: Pic.ClipRectangle) => {
-        const imageFile = { ...$appState.currentImageFile };
+        const imageFile = structuredClone($appState.currentImageFile);
 
         try {
             const input = startEditImage(imageFile);
             const result = await util.clipBuffer(input, rect);
-            const image = endEditImage(result, imageFile, rect.width, rect.height);
+            const image = await endEditImage(result, imageFile);
 
             showEditResult(image);
         } catch (ex: any) {
@@ -49,7 +79,7 @@
     };
 
     const resize = async (request: Pic.ResizeRequest) => {
-        const imageFile = { ...$appState.currentImageFile };
+        const imageFile = structuredClone($appState.currentImageFile);
 
         if (request.format) {
             return await convertImage(imageFile, request.format);
@@ -58,7 +88,7 @@
         try {
             const input = startEditImage(imageFile);
             const result = await util.resizeBuffer(input, request.size);
-            const image = endEditImage(result, imageFile, request.size.width, request.size.height);
+            const image = await endEditImage(result, imageFile);
             showEditResult(image);
         } catch (ex: any) {
             await util.showErrorMessage(ex);
@@ -90,9 +120,9 @@
         try {
             if (format == "ico") {
                 if (settings.preference.timestamp == "Normal") {
-                    await util.toIcon(savePath, image.fullPath);
+                    await util.toIcon(savePath, image);
                 } else {
-                    await util.toIcon(savePath, image.fullPath, image.timestamp);
+                    await util.toIcon(savePath, image, image.timestamp);
                 }
             } else {
                 const buffer = await util.toBuffer(image, format);
@@ -225,11 +255,10 @@
         dispatch({ type: "loadImage", value: data });
     };
 
-    const onImageLoaded = () => {
-        if ($appState.imageSrc) {
-            imageTransform.setImage($appState.currentImageFile);
-            dispatch({ type: "imageScale", value: imageTransform.getImageRatio() });
-        }
+    const onImageLoaded = async () => {
+        imageTransform.setImage($appState.currentImageFile);
+        dispatch({ type: "imageScale", value: imageTransform.getScale() });
+        dispatch({ type: "imageRatio", value: imageTransform.getImageRatio() });
     };
 
     const changeEditMode = (mode: Pic.EditMode) => {
@@ -283,7 +312,7 @@
         const stack = undoStack.pop();
 
         if (stack) {
-            redoStack.push($appState.currentImageFile);
+            redoStack.push(structuredClone($appState.currentImageFile));
             loadImage(stack);
         }
 
@@ -294,7 +323,7 @@
         const stack = redoStack.pop();
 
         if (stack) {
-            undoStack.push($appState.currentImageFile);
+            undoStack.push(structuredClone($appState.currentImageFile));
             loadImage(stack);
         }
 
@@ -424,7 +453,7 @@
             redoStack.length = 0;
         }
 
-        undoStack.push($appState.currentImageFile);
+        undoStack.push(structuredClone($appState.currentImageFile));
 
         changeButtonState();
 
@@ -464,8 +493,8 @@
 
         changeButtonState();
 
-        dispatch({ type: "sizeText", value: imageTransform.getScale() });
-        dispatch({ type: "imageScale", value: imageTransform.getImageRatio() });
+        dispatch({ type: "imageScale", value: imageTransform.getScale() });
+        dispatch({ type: "imageRatio", value: imageTransform.getImageRatio() });
     };
 
     const prepare = () => {
@@ -548,72 +577,22 @@
         </div>
         <div class="menu header">
             <div class="btn-area">
-                <div class="btn clip" title="clip" onclick={() => changeEditMode("Clip")} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M5 2V0H0v5h2v6H0v5h5v-2h6v2h5v-5h-2V5h2V0h-5v2H5zm6 1v2h2v6h-2v2H5v-2H3V5h2V3h6zm1-2h3v3h-3V1zm3 11v3h-3v-3h3zM4 15H1v-3h3v3zM1 4V1h3v3H1z" />
-                    </svg>
-                </div>
-                <div class="btn resize" title="resize" onclick={resizeImage} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            fill-rule="evenodd"
-                            d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 1 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V4.5a.5.5 0 0 1-1 0V.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"
-                        />
-                    </svg>
-                </div>
-                <div class="btn size" title="change size" onclick={openSizeDialog} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-layout-text-sidebar" viewBox="0 0 16 16">
-                        <path
-                            d="M3.5 3a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zm0 3a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zM3 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m.5 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1z"
-                        />
-                        <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm12-1v14h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zm-1 0H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h9z" />
-                    </svg>
-                </div>
+                <div class="btn clip" title="clip" onclick={() => changeEditMode("Clip")} onkeydown={handelKeydown} role="button" tabindex="-1"><Clip /></div>
+                <div class="btn resize" title="resize" onclick={resizeImage} onkeydown={handelKeydown} role="button" tabindex="-1"><Resize /></div>
+                <div class="btn size" title="change size" onclick={openSizeDialog} onkeydown={handelKeydown} role="button" tabindex="-1"><ChangeSize /></div>
                 <div class="separator btn"></div>
-                <div class="btn undo" title="Undo" onclick={undo} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            fill-rule="evenodd"
-                            d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-4.5-.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"
-                        />
-                    </svg>
-                </div>
-                <div class="btn redo" title="Redo" onclick={redo} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            fill-rule="evenodd"
-                            d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"
-                        />
-                    </svg>
-                </div>
-                <div class="btn shrink" title="Enable Shrink" onclick={() => changeResizeMode(!imageTransform.isShrinkable())} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            fill-rule="evenodd"
-                            d="M.172 15.828a.5.5 0 0 0 .707 0l4.096-4.096V14.5a.5.5 0 1 0 1 0v-3.975a.5.5 0 0 0-.5-.5H1.5a.5.5 0 0 0 0 1h2.768L.172 15.121a.5.5 0 0 0 0 .707zM15.828.172a.5.5 0 0 0-.707 0l-4.096 4.096V1.5a.5.5 0 1 0-1 0v3.975a.5.5 0 0 0 .5.5H14.5a.5.5 0 0 0 0-1h-2.768L15.828.879a.5.5 0 0 0 0-.707z"
-                        />
-                    </svg>
-                </div>
+                <div class="btn undo" title="Undo" onclick={undo} onkeydown={handelKeydown} role="button" tabindex="-1"><Undo /></div>
+                <div class="btn redo" title="Redo" onclick={redo} onkeydown={handelKeydown} role="button" tabindex="-1"><Redo /></div>
+                <div class="btn shrink" title="Enable Shrink" onclick={() => changeResizeMode(!imageTransform.isShrinkable())} onkeydown={handelKeydown} role="button" tabindex="-1"><Shrink /></div>
                 <div class="separator btn"></div>
-                <div class="btn save-copy" title="Save Copy" onclick={() => saveImage(true)} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                        <path
-                            d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 13V4a2 2 0 0 0-2-2H5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1zM3 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4z"
-                        />
-                    </svg>
-                </div>
-                <div class="btn save" title="Save" onclick={() => saveImage(false)} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M10.854 6.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 8.793l2.646-2.647a.5.5 0 0 1 .708 0z" />
-                        <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z" />
-                    </svg>
-                </div>
+                <div class="btn save-copy" title="Save Copy" onclick={() => saveImage(true)} onkeydown={handelKeydown} role="button" tabindex="-1"><SaveCopy /></div>
+                <div class="btn save" title="Save" onclick={() => saveImage(false)} onkeydown={handelKeydown} role="button" tabindex="-1"><Save /></div>
             </div>
         </div>
         <div class="window-area">
             <div class="info-area">
-                <div class="scale-text">{$appState.sizeText}</div>
-                <div class="scale-text">{$appState.scaleText}</div>
+                <div class="scale-text">{`${$appState.renderedWidth} x ${$appState.renderedHeight}`}</div>
+                <div class="scale-text">{`${Math.floor($appState.imageRatio * 100)}%`}</div>
             </div>
             <div class="control-area">
                 <div class="minimize" onclick={minimize} onkeydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
@@ -638,7 +617,7 @@
                     </div>
                 {/if}
                 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                <img src={$appState.imageSrc} bind:this={img} class="pic clickable" alt="" onmousedown={onImageMousedown} onload={onImageLoaded} draggable="false" />
+                <img src={$appState.currentImageFile.src} bind:this={img} class="pic clickable" alt="" onmousedown={onImageMousedown} onload={onImageLoaded} draggable="false" />
             </div>
         </div>
     </div>

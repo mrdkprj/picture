@@ -6,7 +6,6 @@ type AppState = {
     imageFiles: Pic.ImageFile[];
     currentImageFile: Pic.ImageFile;
     currentIndex: number;
-    imageSrc: string;
     isMaximized: boolean;
     isFullscreen: boolean;
     pinned: string;
@@ -26,7 +25,6 @@ export const initialAppState: AppState = {
     imageFiles: [],
     currentImageFile: EmptyImageFile,
     currentIndex: 0,
-    imageSrc: "",
     isMaximized: false,
     pinned: "",
     isMouseOnly: false,
@@ -78,7 +76,7 @@ const updater = (state: AppState, action: AppAction): AppState => {
 
         case "updateCurrentImage": {
             const imageSrc = `${state.currentImageFile.src}?${new Date().getTime()}`;
-            return { ...state, imageSrc };
+            return { ...state, currentImageFile: { ...state.currentImageFile, src: imageSrc } };
         }
 
         case "updateImageDetail": {
@@ -88,8 +86,8 @@ const updater = (state: AppState, action: AppAction): AppState => {
         case "index": {
             const currentImageFile = state.imageFiles.length ? state.imageFiles[action.value] : EmptyImageFile;
             const counter = `${action.value + 1} / ${state.imageFiles.length}`;
-            const imageSrc = `${currentImageFile.src}?${new Date().getTime()}`;
-            return { ...state, currentIndex: action.value, currentImageFile, counter, imageSrc };
+            currentImageFile.src = `${currentImageFile.src}?${new Date().getTime()}`;
+            return { ...state, currentIndex: action.value, currentImageFile, counter };
         }
 
         case "removeFile": {

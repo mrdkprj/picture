@@ -1,10 +1,10 @@
-use nonstd::{dialog::FileDialogResult, Dirent, FileAttribute};
 use serde::{Deserialize, Serialize};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use std::{env, path::PathBuf};
 use tauri::{Emitter, Manager, WebviewWindow};
+use zouni::{dialog::FileDialogResult, Dirent, FileAttribute};
 
-use crate::util::{ClipArgs, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
+use crate::util::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
 mod dialog;
 mod menu;
 mod util;
@@ -70,12 +70,12 @@ async fn open_context_menu(window: tauri::WebviewWindow, payload: menu::Position
 
 #[tauri::command]
 fn reveal(payload: String) -> Result<(), String> {
-    nonstd::shell::show_item_in_folder(payload)
+    zouni::shell::show_item_in_folder(payload)
 }
 
 #[tauri::command]
 fn trash(payload: String) -> Result<(), String> {
-    nonstd::fs::trash(payload)
+    zouni::fs::trash(payload)
 }
 
 #[tauri::command]
@@ -85,7 +85,7 @@ fn exists(payload: String) -> bool {
 
 #[tauri::command]
 fn stat(payload: String) -> Result<FileAttribute, String> {
-    nonstd::fs::stat(&payload)
+    zouni::fs::stat(&payload)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -97,7 +97,7 @@ struct FileAttributeEx {
 fn stat_all(payload: Vec<String>) -> Result<Vec<FileAttributeEx>, String> {
     let mut result = Vec::new();
     for path in payload {
-        let attribute = nonstd::fs::stat(&path)?;
+        let attribute = zouni::fs::stat(&path)?;
         result.push(FileAttributeEx {
             full_path: path,
             attribute,
@@ -154,7 +154,7 @@ struct UtimesArgs {
 }
 #[tauri::command]
 fn utimes(payload: UtimesArgs) -> Result<(), String> {
-    nonstd::fs::utimes(payload.file_path, payload.atime_ms, payload.mtime_ms)
+    zouni::fs::utimes(payload.file_path, payload.atime_ms, payload.mtime_ms)
 }
 
 #[tauri::command]
@@ -178,7 +178,7 @@ fn listen_file_drop(window: WebviewWindow, app: tauri::AppHandle, payload: Strin
     {
         let label = window.label().to_string();
         window.with_webview(move |webview| {
-            nonstd::webview2::register_file_drop(unsafe { &webview.controller().CoreWebView2().unwrap() }, Some(payload), move |event| {
+            zouni::webview2::register_file_drop(unsafe { &webview.controller().CoreWebView2().unwrap() }, Some(payload), move |event| {
                 app.emit_to(
                     tauri::EventTarget::WebviewWindow {
                         label: label.to_string(),
@@ -200,16 +200,16 @@ fn listen_file_drop(window: WebviewWindow, app: tauri::AppHandle, payload: Strin
 #[tauri::command]
 fn unlisten_file_drop() {
     #[cfg(target_os = "windows")]
-    nonstd::webview2::clear();
+    zouni::webview2::clear();
 }
 
 #[tauri::command]
 fn readdir(payload: String) -> Result<Vec<Dirent>, String> {
-    nonstd::fs::readdir(payload, false, false)
+    zouni::fs::readdir(payload, false, false)
 }
 
 #[tauri::command]
-fn metadata(payload: String) -> Result<String, String> {
+fn metadata(payload: MetadataRequest) -> Result<String, String> {
     util::get_metadata(payload)
 }
 

@@ -23,7 +23,6 @@ pub struct RotateArgs {
     orientation: i32,
     degree: i32,
 }
-
 pub fn rotate(args: RotateArgs) -> Result<String, String> {
     Sharp::cache(false);
     let sharp = Sharp::new_from_file(args.file_path)?;
@@ -43,16 +42,16 @@ pub fn rotate(args: RotateArgs) -> Result<String, String> {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ResizeArgs {
-    file_path: Option<String>,
-    base64: Option<String>,
+    file: String,
+    is_buffer: bool,
     width: i32,
     height: i32,
 }
 pub fn resize(args: ResizeArgs) -> Result<String, String> {
-    let sharp = if let Some(path) = args.file_path {
-        Sharp::new_from_file(path)?
+    let sharp = if args.is_buffer {
+        Sharp::new_from_buffer(from_base64(args.file))?
     } else {
-        Sharp::new_from_buffer(from_base64(args.base64.unwrap()))?
+        Sharp::new_from_file(args.file)?
     };
     let buffer = sharp.with_metadata(None)?.resize(args.width, args.height)?.with_metadata(None)?.to_buffer()?;
     Ok(to_base64(buffer.as_slice()))
@@ -60,18 +59,18 @@ pub fn resize(args: ResizeArgs) -> Result<String, String> {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ClipArgs {
-    file_path: Option<String>,
-    base64: Option<String>,
+    file: String,
+    is_buffer: bool,
     left: u32,
     top: u32,
     width: u32,
     height: u32,
 }
 pub fn clip(args: ClipArgs) -> Result<String, String> {
-    let sharp = if let Some(path) = args.file_path {
-        Sharp::new_from_file(path)?
+    let sharp = if args.is_buffer {
+        Sharp::new_from_buffer(from_base64(args.file))?
     } else {
-        Sharp::new_from_buffer(from_base64(args.base64.unwrap()))?
+        Sharp::new_from_file(args.file)?
     };
     let buffer = sharp
         .with_metadata(None)?
@@ -87,12 +86,22 @@ pub fn clip(args: ClipArgs) -> Result<String, String> {
     Ok(to_base64(buffer.as_slice()))
 }
 
-pub fn get_metadata(file_path: String) -> Result<String, String> {
-    if let Some(extension) = std::path::PathBuf::from(&file_path).extension() {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetadataRequest {
+    file: String,
+    is_buffer: bool,
+}
+pub fn get_metadata(args: MetadataRequest) -> Result<String, String> {
+    if args.is_buffer {
+        let data = Sharp::new_from_buffer(from_base64(args.file))?.metadata()?;
+        return Ok(serde_json::to_string(&data).unwrap());
+    }
+
+    if let Some(extension) = std::path::PathBuf::from(args.file.clone()).extension() {
         let data = if extension.to_string_lossy().to_ascii_lowercase().ends_with("ico") {
-            Sharp::from_icon_file(file_path)?.metadata()?
+            Sharp::from_icon_file(args.file)?.metadata()?
         } else {
-            Sharp::new_from_file(file_path)?.metadata()?
+            Sharp::new_from_file(args.file)?.metadata()?
         };
         return Ok(serde_json::to_string(&data).unwrap());
     }

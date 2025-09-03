@@ -11,8 +11,6 @@ type ClipPosition = {
 
 type AppState = {
     currentImageFile: Pic.ImageFile;
-    imageSrc: string;
-    sizeText: string;
     clipCanvasStyle: string;
     clipPosition: ClipPosition;
     clipAreaStyle: string;
@@ -26,30 +24,14 @@ type AppState = {
     isEdited: boolean;
     clipping: boolean;
     allowShrink: boolean;
-    scaleText: string;
+    imageRatio: number;
     isSizeDialogOpen: boolean;
+    renderedWidth: number;
+    renderedHeight: number;
 };
-
-type AppAction =
-    | { type: "loadImage"; value: Pic.ImageFile }
-    | { type: "clearImage" }
-    | { type: "sizeText"; value: number }
-    | { type: "startClip"; value: { rect: DOMRect; position: ClipPosition } }
-    | { type: "moveClip"; value: { x: number; y: number } }
-    | { type: "editMode"; value: Pic.EditMode }
-    | { type: "isMaximized"; value: boolean }
-    | { type: "loading"; value: boolean }
-    | { type: "dragging"; value: boolean }
-    | { type: "buttonState"; value: { canUndo: boolean; canRedo: boolean; isResized: boolean } }
-    | { type: "clipping"; value: boolean }
-    | { type: "allowShrink"; value: boolean }
-    | { type: "imageScale"; value: number }
-    | { type: "toggleSizeDialog"; value: boolean };
 
 export const initialAppState: AppState = {
     currentImageFile: EmptyImageFile,
-    imageSrc: "",
-    sizeText: "",
     clipCanvasStyle: "",
     clipPosition: {
         startX: 0,
@@ -66,29 +48,47 @@ export const initialAppState: AppState = {
     isEdited: false,
     clipping: false,
     allowShrink: false,
-    scaleText: "",
     isSizeDialogOpen: false,
+    imageRatio: 0,
+    renderedWidth: 0,
+    renderedHeight: 0,
 };
+
+type AppAction =
+    | { type: "loadImage"; value: Pic.ImageFile }
+    | { type: "clearImage" }
+    | { type: "imageScale"; value: number }
+    | { type: "imageRatio"; value: number }
+    | { type: "startClip"; value: { rect: DOMRect; position: ClipPosition } }
+    | { type: "moveClip"; value: { x: number; y: number } }
+    | { type: "editMode"; value: Pic.EditMode }
+    | { type: "isMaximized"; value: boolean }
+    | { type: "loading"; value: boolean }
+    | { type: "dragging"; value: boolean }
+    | { type: "buttonState"; value: { canUndo: boolean; canRedo: boolean; isResized: boolean } }
+    | { type: "clipping"; value: boolean }
+    | { type: "allowShrink"; value: boolean }
+    | { type: "toggleSizeDialog"; value: boolean };
 
 const updater = (state: AppState, action: AppAction): AppState => {
     switch (action.type) {
-        case "sizeText": {
-            const size = {
-                width: Math.floor(state.currentImageFile.detail.renderedWidth * action.value),
-                height: Math.floor(state.currentImageFile.detail.renderedHeight * action.value),
+        case "imageScale": {
+            return {
+                ...state,
+                renderedWidth: Math.floor(state.currentImageFile.detail.renderedWidth * action.value),
+                renderedHeight: Math.floor(state.currentImageFile.detail.renderedHeight * action.value),
             };
-            const sizeText = `${size.width} x ${size.height}`;
-            return { ...state, sizeText };
         }
 
         case "loadImage": {
+            const image = action.value;
             const isEdited = action.value.type === "buffer";
-            const imageSrc = action.value.type === "path" ? `${action.value.src}?${new Date().getTime()}` : `data:image/jpeg;base64,${action.value.fullPath}`;
-            return { ...state, imageSrc, currentImageFile: action.value, isEdited };
+            image.src = action.value.type === "path" ? `${action.value.src}?${new Date().getTime()}` : `data:image/jpeg;base64,${action.value.fullPath}`;
+            return { ...state, currentImageFile: image, isEdited };
         }
 
         case "clearImage":
-            return { ...state, imageSrc: "" };
+            return { ...state, currentImageFile: EmptyImageFile };
 
         case "startClip": {
             const { width, height, top, left } = action.value.rect;
@@ -134,8 +134,8 @@ const updater = (state: AppState, action: AppAction): AppState => {
         case "allowShrink":
             return { ...state, allowShrink: action.value };
 
-        case "imageScale":
-            return { ...state, scaleText: `${Math.floor(action.value * 100)}%` };
+        case "imageRatio":
+            return { ...state, imageRatio: action.value };
 
         case "toggleSizeDialog":
             return { ...state, isSizeDialogOpen: action.value };

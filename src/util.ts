@@ -63,25 +63,23 @@ class Util {
     }
 
     async resizeBuffer(input: Pic.EditInput, size: Pic.ImageSize) {
-        const isBuffer = input.type == "buffer";
-        return await ipc.invoke("resize", { file_path: isBuffer ? "" : input.file, base64: isBuffer ? input.file : "", width: size.width, height: size.height });
+        return await ipc.invoke("resize", { file: input.file, is_buffer: input.type == "buffer", width: size.width, height: size.height });
     }
 
     async clipBuffer(input: Pic.EditInput, size: Pic.ClipRectangle) {
-        const isBuffer = input.type == "buffer";
-        return await ipc.invoke("clip", { file_path: isBuffer ? "" : input.file, base64: isBuffer ? input.file : "", top: size.top, left: size.left, width: size.width, height: size.height });
+        return await ipc.invoke("clip", { file: input.file, is_buffer: input.type == "buffer", top: size.top, left: size.left, width: size.width, height: size.height });
     }
 
-    async getMetadata(fullPath: string) {
-        return await ipc.invoke("metadata", fullPath);
+    async getMetadata(fullPath: string, isBuffer = false) {
+        return await ipc.invoke("metadata", { file: fullPath, is_buffer: isBuffer });
     }
 
     async toBuffer(image: Pic.ImageFile, format: Pic.ImageFormat) {
         return await ipc.invoke("to_buffer", { file_path: image.fullPath, format: format == "png" ? "png" : "jpeg" });
     }
 
-    async toIcon(destPath: string, sourcePath: string, mtime?: number) {
-        await ipc.invoke("to_icon", { file_path: sourcePath, out_path: destPath });
+    async toIcon(destPath: string, source: Pic.ImageFile, mtime?: number) {
+        await ipc.invoke("to_icon", { file: source.fullPath, is_buffer: source.type == "buffer", out_path: destPath });
         if (mtime) {
             await ipc.invoke("utimes", { file_path: destPath, atime_ms: mtime, mtime_ms: mtime });
         }
