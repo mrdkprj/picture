@@ -458,6 +458,9 @@
         }
 
         if (e.key == "Escape") {
+            if ($appState.isHistoryOpen) {
+                dispatch({ type: "isHistoryOpen", value: false });
+            }
             await exitFullscreen();
         }
 
