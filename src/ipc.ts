@@ -87,7 +87,7 @@ type ClipArgs = {
 };
 
 type ToIconArgs = {
-    file: string;
+    image: string;
     is_buffer: boolean;
     out_path: string;
 };

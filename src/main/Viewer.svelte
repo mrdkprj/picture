@@ -116,11 +116,11 @@
             return;
         }
 
-        if (index == 1 && $appState.imageFiles.length - 1 <= $appState.currentIndex) {
+        if ($appState.imageFiles.length - 1 <= index) {
             return;
         }
 
-        if (index == -1 && $appState.currentIndex <= 0) {
+        if (index <= 0) {
             return;
         }
 

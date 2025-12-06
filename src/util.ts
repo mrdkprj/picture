@@ -79,7 +79,7 @@ class Util {
     }
 
     async toIcon(destPath: string, source: Pic.ImageFile, mtime?: number) {
-        await ipc.invoke("to_icon", { file: source.fullPath, is_buffer: source.type == "buffer", out_path: destPath });
+        await ipc.invoke("to_icon", { image: source.fullPath, is_buffer: source.type == "buffer", out_path: destPath });
         if (mtime) {
             await ipc.invoke("utimes", { file_path: destPath, atime_ms: mtime, mtime_ms: mtime });
         }

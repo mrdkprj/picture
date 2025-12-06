@@ -126,10 +126,16 @@ pub fn to_buffer(args: ToBufferArgs) -> Result<String, String> {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ToIconArgs {
-    file_path: String,
+    is_buffer: bool,
+    image: String,
     out_path: String,
 }
 pub fn to_icon(args: ToIconArgs) -> Result<(), String> {
-    let _ = Sharp::new_from_file(args.file_path)?.to_icon(args.out_path, None)?;
+    let sharp = if args.is_buffer {
+        Sharp::new_from_buffer(from_base64(args.image))?
+    } else {
+        Sharp::new_from_file(args.image)?
+    };
+    let _ = sharp.to_icon(args.out_path, None)?;
     Ok(())
 }

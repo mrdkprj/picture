@@ -133,12 +133,7 @@
                 }
             }
 
-            image.fullPath = savePath;
-            image.directory = path.dirname(savePath);
-            image.fileName = path.basename(savePath);
-            image.type = "path";
-
-            showEditResult(image);
+            close();
         } catch (ex: any) {
             await util.showErrorMessage(ex);
         }
