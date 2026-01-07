@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use std::{env, path::PathBuf};
 use tauri::{Emitter, Manager, WebviewWindow};
-use zouni::{dialog::FileDialogResult, Dirent, FileAttribute};
+use zouni::{
+    dialog::{FileDialogResult, MessageResult},
+    Dirent, FileAttribute,
+};
 
 use crate::util::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
 mod dialog;
@@ -158,7 +161,7 @@ fn utimes(payload: UtimesArgs) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn message(payload: dialog::DialogOptions) -> bool {
+async fn message(payload: dialog::DialogOptions) -> MessageResult {
     dialog::show(payload).await
 }
 

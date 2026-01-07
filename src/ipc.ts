@@ -111,6 +111,11 @@ export type Dirent = {
     attributes: FileAttribute;
 };
 
+type MessageResult = {
+    button: string;
+    cancelled: boolean;
+};
+
 type TauriCommandMap = {
     prepare_windows: TauriCommand<Pic.Preference, boolean>;
     get_init_args: TauriCommand<undefined, string[]>;
@@ -128,7 +133,7 @@ type TauriCommandMap = {
     write_image_file: TauriCommand<WriteFileInfo, undefined>;
     stat: TauriCommand<string, FileAttribute>;
     stat_all: TauriCommand<string[], FileAttributeExt[]>;
-    message: TauriCommand<DialogOptions, boolean>;
+    message: TauriCommand<DialogOptions, MessageResult>;
     save: TauriCommand<FileDialogOptions, FileDialogResult>;
     open: TauriCommand<FileDialogOptions, FileDialogResult>;
     listen_file_drop: TauriCommand<string, undefined>;

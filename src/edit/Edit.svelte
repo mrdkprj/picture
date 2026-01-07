@@ -144,7 +144,7 @@
 
         if (!saveCopy) {
             const result = await ipc.invoke("message", { dialog_type: "ask", buttons: ["OK", "Cancel"], message: "Overwrite image?" });
-            if (!result) {
+            if (result.button != "OK" || result.cancelled) {
                 return;
             }
         }
