@@ -1,15 +1,14 @@
 use crate::{get_window_handel, Settings};
-use async_std::sync::Mutex;
-use once_cell::sync::Lazy;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::LazyLock};
+use tauri::async_runtime::Mutex;
 use tauri::Emitter;
 use wcpopup::{
     config::{ColorScheme, Config, MenuSize, Theme as MenuTheme, ThemeColor, DEFAULT_DARK_COLOR_SCHEME},
     Menu, MenuBuilder,
 };
 
-static MENU_MAP: Lazy<Mutex<HashMap<String, Menu>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static MENU_MAP: LazyLock<Mutex<HashMap<String, Menu>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 const MENU_EVENT_NAME: &str = "contextmenu-event";
 

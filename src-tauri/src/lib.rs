@@ -28,6 +28,8 @@ fn get_window_handel(window: &WebviewWindow) -> isize {
     window.hwnd().unwrap().0 as _
 }
 
+#[derive(Serialize)]
+struct OpenedUrls(Vec<String>);
 #[tauri::command]
 fn get_init_args(app: tauri::AppHandle) -> Vec<String> {
     if let Some(urls) = app.try_state::<OpenedUrls>() {
@@ -36,9 +38,6 @@ fn get_init_args(app: tauri::AppHandle) -> Vec<String> {
 
     Vec::new()
 }
-
-#[derive(Serialize)]
-struct OpenedUrls(Vec<String>);
 
 #[tauri::command]
 fn change_theme(window: tauri::WebviewWindow, payload: &str) {

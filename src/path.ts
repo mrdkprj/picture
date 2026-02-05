@@ -1,11 +1,14 @@
 import { SEPARATOR } from "./constants";
+import util from "./util";
 
 export default class path {
     static join(...paths: string[]) {
-        const components = paths
-            .map((a) => a.split(SEPARATOR))
-            .flat()
-            .filter(Boolean);
+        const components = util.isWin()
+            ? paths
+                  .map((a) => path.split(a))
+                  .flat()
+                  .filter(Boolean)
+            : paths.map((a) => a.split(SEPARATOR)).flat();
         return components.join(SEPARATOR);
     }
 
@@ -35,6 +38,12 @@ export default class path {
     static root(path: string | undefined) {
         if (!path) return "";
         const components = path.split(SEPARATOR);
-        return components[0];
+        return components[0] + SEPARATOR;
+    }
+
+    static split(path: string | undefined) {
+        if (!path) return [];
+        const pattern = util.isWsl(path) ? new RegExp(/(?<!^|\\)\\/) : SEPARATOR;
+        return path.split(pattern).filter(Boolean);
     }
 }

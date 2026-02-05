@@ -49,6 +49,10 @@
             "icons/icon.ico"
         ],
         "targets": "nsis",
+        "resources":[
+            "./vips/libvips-42.dll",
+            "./vips/libvips.lib"
+        ],
         "windows": {
             "nsis": {
                 "installMode": "currentUser",

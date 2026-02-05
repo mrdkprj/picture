@@ -116,11 +116,11 @@
             return;
         }
 
-        if ($appState.imageFiles.length - 1 <= index) {
+        if (index >= $appState.imageFiles.length) {
             return;
         }
 
-        if (index <= 0) {
+        if (index < 0) {
             return;
         }
 
@@ -358,7 +358,7 @@
         await changeTopRenderer("edit");
     };
 
-    const beforeClose = async () => {
+    const close = async () => {
         await ipc.invoke("unlisten_file_drop", undefined);
         const imageFile = $appState.currentImageFile;
 
@@ -369,8 +369,9 @@
         await settings.save($appState.settings);
 
         const edit = await WebviewWindow.getByLabel("edit");
-        await edit?.destroy();
-        WebviewWindow.getCurrent().destroy();
+        await edit?.close();
+
+        await WebviewWindow.getCurrent().close();
     };
 
     const loadFiles = async (fullPath: string) => {
@@ -607,10 +608,6 @@
         }
     };
 
-    const close = () => {
-        WebviewWindow.getCurrent().close();
-    };
-
     const lock = () => {
         dispatch({ type: "locked", value: true });
     };
@@ -659,7 +656,6 @@
         };
         initSettings();
         ipc.receiveOnce("backend-ready", prepare);
-        ipc.receiveTauri("tauri://close-requested", beforeClose);
         ipc.receive("contextmenu-event", mainContextMenuCallback);
         ipc.receiveTauri("tauri://drag-drop", onFileDrop);
         ipc.receiveTauri("tauri://resize", onWindowSizeChanged);

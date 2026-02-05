@@ -1,5 +1,5 @@
 import path from "./path";
-import { RotateDegree, Extensions } from "./constants";
+import { RotateDegree, Extensions, WSL_ROOT, OS } from "./constants";
 import { Dirent, IPCBase } from "./ipc";
 import { PhysicalPosition, PhysicalSize } from "@tauri-apps/api/dpi";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -7,6 +7,15 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 const ipc = new IPCBase();
 
 class Util {
+    isWin() {
+        return navigator.userAgent.includes(OS.windows);
+    }
+
+    isWsl(fullPath: string | undefined) {
+        if (!fullPath) return false;
+        return fullPath.startsWith(WSL_ROOT);
+    }
+
     async exists(target: string, createIfNotFound = false) {
         const found = await ipc.invoke("exists", target);
         if (found) {

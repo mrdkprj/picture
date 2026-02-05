@@ -1,6 +1,6 @@
-export const PLATFROMS = {
-    linux: "Linux",
+export const OS = {
     windows: "Windows",
+    linux: "Linux",
 };
 
 export const SEPARATOR = navigator.userAgent.includes("Windows") ? "\\" : "/";
@@ -44,3 +44,5 @@ export const RotateDegree: { [key: number]: number } = {
 };
 
 export const Extensions = [".jpeg", ".jpg", ".png", ".gif", ".svg", ".webp", ".ico"];
+
+export const WSL_ROOT = "\\\\wsl.localhost";

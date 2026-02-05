@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use base64::{engine::general_purpose, Engine};
 use serde::{Deserialize, Serialize};
 use sharp::{
