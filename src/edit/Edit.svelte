@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import Loader from "../Loader.svelte";
+    import Loader from "../assets/Loader.svelte";
     import icon from "../assets/icon.ico";
     import ChangeSize from "../assets/ChangeSize.svelte";
     import Clip from "../assets/Clip.svelte";
@@ -10,23 +10,22 @@
     import SaveCopy from "../assets/SaveCopy.svelte";
     import Shrink from "../assets/Shrink.svelte";
     import Undo from "../assets/Undo.svelte";
-    import { appState, dispatch } from "./appStateReducer";
+    import { editState, dispatch } from "./editStateReducer";
+    import { appState } from "../state.svelte";
     import { ImageTransform } from "../imageTransform";
     import { BROWSER_SHORTCUT_KEYS, OrientationName } from "../constants";
     import Size from "./Size.svelte";
     import { IPC } from "../ipc";
     import util from "../util";
     import path from "../path";
-    import { DEFAULT_SETTINGS } from "../settings";
-    import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+    import { scale } from "svelte/transition";
 
     const imageTransform = new ImageTransform();
-    const ipc = new IPC("edit");
+    const ipc = new IPC("main");
 
     let imageArea: HTMLDivElement;
     let img: HTMLImageElement;
     let clipArea: HTMLDivElement;
-    let settings: Pic.Settings = DEFAULT_SETTINGS;
 
     const undoStack: Pic.ImageFile[] = [];
     const redoStack: Pic.ImageFile[] = [];
@@ -65,7 +64,7 @@
     };
 
     const clipImage = async (rect: Pic.ClipRectangle) => {
-        const imageFile = structuredClone($appState.currentImageFile);
+        const imageFile = structuredClone($editState.currentImageFile);
 
         try {
             const input = startEditImage(imageFile);
@@ -79,7 +78,7 @@
     };
 
     const resize = async (request: Pic.ResizeRequest) => {
-        const imageFile = structuredClone($appState.currentImageFile);
+        const imageFile = structuredClone($editState.currentImageFile);
 
         if (request.format) {
             return await convertImage(imageFile, request.format);
@@ -96,7 +95,7 @@
     };
 
     const getSaveDestPath = async (image: Pic.ImageFile, saveCopy: boolean, format?: Pic.ImageFormat) => {
-        let savePath = $appState.currentImageFile.fullPath;
+        let savePath = $editState.currentImageFile.fullPath;
 
         if (saveCopy) {
             const ext = format ? `.${format}` : path.extname(image.fileName);
@@ -119,14 +118,14 @@
 
         try {
             if (format == "ico") {
-                if (settings.preference.timestamp == "Normal") {
+                if (appState.settings.preference.timestamp == "Normal") {
                     await util.toIcon(savePath, image);
                 } else {
                     await util.toIcon(savePath, image, image.timestamp);
                 }
             } else {
                 const buffer = await util.toBuffer(image, format);
-                if (settings.preference.timestamp == "Normal") {
+                if (appState.settings.preference.timestamp == "Normal") {
                     await util.saveFile(savePath, buffer);
                 } else {
                     await util.saveFile(savePath, buffer, image.timestamp);
@@ -140,7 +139,7 @@
     };
 
     const saveImage = async (saveCopy: boolean) => {
-        if ($appState.currentImageFile.type === "path") return;
+        if ($editState.currentImageFile.type === "path") return;
 
         if (!saveCopy) {
             const result = await ipc.invoke("message", { dialog_type: "ask", buttons: ["OK", "Cancel"], message: "Overwrite image?" });
@@ -149,15 +148,15 @@
             }
         }
 
-        const savePath = await getSaveDestPath($appState.currentImageFile, saveCopy);
+        const savePath = await getSaveDestPath($editState.currentImageFile, saveCopy);
 
         if (!savePath) return;
 
         try {
-            if (settings.preference.timestamp == "Normal") {
-                await util.saveFile(savePath, $appState.currentImageFile.fullPath);
+            if (appState.settings.preference.timestamp == "Normal") {
+                await util.saveFile(savePath, $editState.currentImageFile.fullPath);
             } else {
-                await util.saveFile(savePath, $appState.currentImageFile.fullPath, $appState.currentImageFile.timestamp);
+                await util.saveFile(savePath, $editState.currentImageFile.fullPath, $editState.currentImageFile.timestamp);
             }
             await ipc.sendTo("main", "after-edit-image", {});
             close();
@@ -172,7 +171,7 @@
         }
 
         if (e.key == "Escape") {
-            if ($appState.isSizeDialogOpen) {
+            if ($editState.isSizeDialogOpen) {
                 dispatch({ type: "toggleSizeDialog", value: false });
             } else {
                 close();
@@ -197,7 +196,7 @@
     };
 
     const onImageMousedown = (e: MouseEvent) => {
-        if ($appState.editMode == "Clip") return;
+        if ($editState.editMode == "Clip") return;
 
         imageTransform.onMousedown(e);
     };
@@ -207,7 +206,7 @@
 
         if (!e.target.classList.contains("clickable")) return;
 
-        if ($appState.editMode == "Clip") {
+        if ($editState.editMode == "Clip") {
             prepareClip(e);
         }
     };
@@ -217,7 +216,7 @@
 
         if (e.button != 0) return;
 
-        if ($appState.clipping) {
+        if ($editState.clipping) {
             clip(e);
         }
 
@@ -227,7 +226,7 @@
     const onMouseup = (e: MouseEvent) => {
         if (!e.target || !(e.target instanceof HTMLElement)) return;
 
-        if ($appState.clipping) {
+        if ($editState.clipping) {
             dispatch({ type: "clipping", value: false });
             requestEdit();
             return;
@@ -251,13 +250,13 @@
     };
 
     const onImageLoaded = async () => {
-        imageTransform.setImage($appState.currentImageFile);
+        imageTransform.setImage($editState.currentImageFile);
         dispatch({ type: "imageScale", value: imageTransform.getScale() });
         dispatch({ type: "imageRatio", value: imageTransform.getImageRatio() });
     };
 
     const changeEditMode = (mode: Pic.EditMode) => {
-        if ($appState.editMode == mode) {
+        if ($editState.editMode == mode) {
             dispatch({ type: "editMode", value: "Resize" });
         } else {
             dispatch({ type: "editMode", value: mode });
@@ -307,7 +306,7 @@
         const stack = undoStack.pop();
 
         if (stack) {
-            redoStack.push(structuredClone($appState.currentImageFile));
+            redoStack.push(structuredClone($editState.currentImageFile));
             loadImage(stack);
         }
 
@@ -318,7 +317,7 @@
         const stack = redoStack.pop();
 
         if (stack) {
-            undoStack.push(structuredClone($appState.currentImageFile));
+            undoStack.push(structuredClone($editState.currentImageFile));
             loadImage(stack);
         }
 
@@ -326,7 +325,7 @@
     };
 
     const getActualRect = (rect: Pic.ImageRectangle) => {
-        const orientation = $appState.currentImageFile.detail.orientation;
+        const orientation = $editState.currentImageFile.detail.orientation;
         const rotated = orientation % 2 == 0;
 
         const width = rotated ? rect.height : rect.width;
@@ -369,7 +368,7 @@
 
         if (clip.top > imageRect.bottom || clip.bottom < imageRect.top) return null;
 
-        const rate = Math.max(imageRect.width / $appState.currentImageFile.detail.renderedWidth, imageRect.height / $appState.currentImageFile.detail.renderedHeight);
+        const rate = Math.max(imageRect.width / $editState.currentImageFile.detail.renderedWidth, imageRect.height / $editState.currentImageFile.detail.renderedHeight);
 
         const clipLeft = Math.floor((clip.left - imageRect.left) / rate);
         const clipRight = Math.floor((imageRect.right - clip.right) / rate);
@@ -408,7 +407,7 @@
             height,
         };
 
-        if ($appState.currentImageFile.detail.format == format) {
+        if ($editState.currentImageFile.detail.format == format) {
             await resize({ size });
         } else {
             await resize({ size, format });
@@ -418,7 +417,7 @@
     };
 
     const requestEdit = async () => {
-        if ($appState.editMode === "Clip") {
+        if ($editState.editMode === "Clip") {
             if (!prepare()) return;
 
             const clipInfo = getClipInfo();
@@ -428,13 +427,13 @@
             await clipImage(clipInfo);
         }
 
-        if ($appState.editMode === "Resize" && imageTransform.isResized()) {
+        if ($editState.editMode === "Resize" && imageTransform.isResized()) {
             if (!prepare()) return;
             const scale = imageTransform.getScale();
 
             const size = {
-                width: Math.floor($appState.currentImageFile.detail.width * scale),
-                height: Math.floor($appState.currentImageFile.detail.height * scale),
+                width: Math.floor($editState.currentImageFile.detail.width * scale),
+                height: Math.floor($editState.currentImageFile.detail.height * scale),
             };
 
             await resize({ size });
@@ -448,11 +447,11 @@
             redoStack.length = 0;
         }
 
-        undoStack.push(structuredClone($appState.currentImageFile));
+        undoStack.push(structuredClone($editState.currentImageFile));
 
         changeButtonState();
 
-        if ($appState.editMode == "Clip") {
+        if ($editState.editMode == "Clip") {
             clearClip();
         }
 
@@ -469,20 +468,15 @@
     };
 
     const minimize = async () => {
-        await ipc.sendTo("main", "minimize", {});
+        await ipc.send("minimize", {});
     };
 
     const toggleMaximize = async () => {
-        await ipc.sendTo("main", "toggle-maximize", {});
-    };
-
-    const onWindowSizeChanged = async () => {
-        const isMaximized = await WebviewWindow.getCurrent().isMaximized();
-        dispatch({ type: "isMaximized", value: isMaximized });
+        await ipc.send("toggle-maximize", {});
     };
 
     const onTransformChange = () => {
-        if (imageTransform.isResized() && $appState.editMode == "Clip") {
+        if (imageTransform.isResized() && $editState.editMode == "Clip") {
             changeEditMode("Resize");
         }
 
@@ -493,29 +487,23 @@
     };
 
     const prepare = () => {
-        if ($appState.loading) {
+        if ($editState.loading) {
             return false;
         }
         lock();
         return true;
     };
 
-    const applyConfig = (data: Pic.Settings) => {
-        dispatch({ type: "isMaximized", value: data.isMaximized });
-        undoStack.length = 0;
-        redoStack.length = 0;
-    };
-
     const clear = () => {
         unlock();
         dispatch({ type: "clearImage" });
-        changeEditMode($appState.editMode);
+        changeEditMode($editState.editMode);
         changeResizeMode(false);
     };
 
     const close = async () => {
         clear();
-        await ipc.sendTo("main", "on-edit-close", {});
+        appState.mode = "view";
     };
 
     const lock = () => {
@@ -526,27 +514,18 @@
         dispatch({ type: "loading", value: false });
     };
 
-    const updateSettings = (newSettings: Pic.Settings) => {
-        settings = newSettings;
-    };
-
-    const onOpen = (data: Pic.OpenEditEvent) => {
-        applyConfig(data.settings);
-        loadImage(data.file);
-    };
-
-    onMount(() => {
+    const init = async () => {
+        undoStack.length = 0;
+        redoStack.length = 0;
+        loadImage(appState.workingImage);
         imageTransform.init(imageArea, img);
         imageTransform.on("transformchange", onTransformChange);
         imageTransform.on("dragstart", onImageDragStart);
         imageTransform.on("dragend", onImageDragEnd);
-        ipc.receiveTauri("tauri://resize", onWindowSizeChanged);
-        ipc.receive("sync-setting", updateSettings);
-        ipc.receive("open-edit-dialog", onOpen);
+    };
 
-        return () => {
-            ipc.release();
-        };
+    onMount(() => {
+        init();
     });
 
     const handelKeydown = () => {};
@@ -555,20 +534,20 @@
 <svelte:window onresize={onWindowResize} />
 <svelte:document onkeydown={onKeydown} onmousedown={onMouseDown} onmousemove={onMousemove} onmouseup={onMouseup} />
 
-<div class="viewport" class:dragging={$appState.dragging}>
+<div in:scale={{ delay: 0, duration: 100 }} class="viewport edit" class:dragging={$editState.dragging}>
     <div
         class="title-bar"
-        class:can-undo={$appState.canUndo}
-        class:can-redo={$appState.canRedo}
-        class:resized={$appState.isResized}
-        class:edited={$appState.isEdited}
-        class:clipping={$appState.editMode == "Clip"}
-        class:shrinkable={$appState.allowShrink}
-        class:is-icon={$appState.currentImageFile.detail.format == "ico"}
+        class:can-undo={$editState.canUndo}
+        class:can-redo={$editState.canRedo}
+        class:resized={$editState.isResized}
+        class:edited={$editState.isEdited}
+        class:clipping={$editState.editMode == "Clip"}
+        class:shrinkable={$editState.allowShrink}
+        class:is-icon={$editState.currentImageFile.detail.format == "ico"}
     >
         <div class="icon-area">
             <img class="ico" src={icon} alt="" />
-            <span id="title">{$appState.currentImageFile.fileName}</span>
+            <span id="title">{$editState.currentImageFile.fileName}</span>
         </div>
         <div class="menu header">
             <div class="btn-area">
@@ -586,13 +565,13 @@
         </div>
         <div class="window-area">
             <div class="info-area">
-                <div class="scale-text">{`${$appState.renderedWidth} x ${$appState.renderedHeight}`}</div>
-                <div class="scale-text">{`${Math.floor($appState.imageRatio * 100)}%`}</div>
+                <div class="scale-text">{`${$editState.renderedWidth} x ${$editState.renderedHeight}`}</div>
+                <div class="scale-text">{`${Math.floor($editState.imageRatio * 100)}%`}</div>
             </div>
             <div class="control-area">
                 <div class="minimize" onclick={minimize} onkeydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
                 <div class="maximize" onclick={toggleMaximize} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <div class:maxbtn={$appState.isMaximized} class:minbtn={!$appState.isMaximized}></div>
+                    <div class:maxbtn={appState.settings.isMaximized} class:minbtn={!appState.settings.isMaximized}></div>
                 </div>
                 <div class="close" onclick={close} onkeydown={handelKeydown} role="button" tabindex="-1">&larr;</div>
             </div>
@@ -600,19 +579,19 @@
     </div>
 
     <div class="container clickable" draggable="false">
-        <Loader show={$appState.loading} />
-        {#if $appState.isSizeDialogOpen}
+        <Loader show={$editState.loading} />
+        {#if $editState.isSizeDialogOpen}
             <Size onApply={onSizeFormatChange} />
         {/if}
         <div class="image-container clickable">
             <div bind:this={imageArea} class="image-area clickable" onwheel={imageTransform.onWheel}>
-                {#if $appState.clipping}
-                    <div class="clip-canvas clickable" style={$appState.clipCanvasStyle}>
-                        <div bind:this={clipArea} class="clip-area" style={$appState.clipAreaStyle}></div>
+                {#if $editState.clipping}
+                    <div class="clip-canvas clickable" style={$editState.clipCanvasStyle}>
+                        <div bind:this={clipArea} class="clip-area" style={$editState.clipAreaStyle}></div>
                     </div>
                 {/if}
                 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                <img src={$appState.currentImageFile.src} bind:this={img} class="pic clickable" alt="" onmousedown={onImageMousedown} onload={onImageLoaded} draggable="false" />
+                <img src={$editState.currentImageFile.src} bind:this={img} class="pic clickable" alt="" onmousedown={onImageMousedown} onload={onImageLoaded} draggable="false" />
             </div>
         </div>
     </div>

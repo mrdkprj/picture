@@ -29,7 +29,7 @@ declare global {
     };
 
     type RendererChannelEventMap = {
-        "backend-ready": Pic.Event;
+        close: Pic.Event;
         "after-edit-image": Pic.Event;
         minimize: Pic.Event;
         "contextmenu-event": Pic.ContextMenuEvent;
@@ -149,11 +149,6 @@ declare global {
             orientation: number;
             format: Pic.ImageFormat;
             category?: number | undefined;
-        };
-
-        type OpenEditEvent = {
-            file: ImageFile;
-            settings: Pic.Settings;
         };
 
         type ResizeRequest = {

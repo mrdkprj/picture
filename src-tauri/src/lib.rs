@@ -1,3 +1,4 @@
+use crate::util::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
 use serde::{Deserialize, Serialize};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use std::{env, path::PathBuf};
@@ -6,13 +7,10 @@ use zouni::{
     dialog::{FileDialogResult, MessageResult},
     Dirent, FileAttribute,
 };
-
-use crate::util::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
 mod dialog;
 mod menu;
 mod util;
 
-static MAIN: &str = "main";
 static THEME_DARK: &str = "dark";
 
 #[cfg(target_os = "linux")]
@@ -274,17 +272,6 @@ pub fn run() {
             app.manage(OpenedUrls(urls));
 
             Ok(())
-        })
-        .on_page_load(|window, _| {
-            window
-                .emit_to(
-                    tauri::EventTarget::WebviewWindow {
-                        label: MAIN.to_string(),
-                    },
-                    "backend-ready",
-                    String::new(),
-                )
-                .unwrap();
         })
         .invoke_handler(tauri::generate_handler![
             get_init_args,

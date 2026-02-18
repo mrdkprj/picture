@@ -1,16 +1,16 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import Loader from "../Loader.svelte";
+    import Loader from "../assets/Loader.svelte";
     import History from "./History.svelte";
     import icon from "../assets/icon.ico";
-    import { appState, dispatch } from "./appStateReducer";
+    import { viewState, dispatch } from "./viewStateReducer";
+    import { appState } from "../state.svelte";
     import { ImageTransform } from "../imageTransform";
     import { Orientations, FORWARD, BACKWARD, Extensions, BROWSER_SHORTCUT_KEYS } from "../constants";
     import { IPC } from "../ipc";
     import util from "../util";
     import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
     import path from "../path";
-    import Settings from "../settings";
     import { getDropFiles } from "../fileDropHandler";
     import EditPic from "../assets/EditPic.svelte";
     import RotateLeft from "../assets/RotateLeft.svelte";
@@ -20,27 +20,26 @@
     import Pin from "../assets/Pin.svelte";
     import OpenMenu from "../assets/OpenMenu.svelte";
     import NotFound from "../assets/NotFound.svelte";
+    import { scale } from "svelte/transition";
 
     let orientationIndex = 0;
     let imageArea: HTMLDivElement;
     let img: HTMLImageElement;
-    let topRendererName: RendererName = "main";
-    let settings = new Settings();
 
     const ipc = new IPC("main");
     const imageTransform = new ImageTransform();
 
     const updateImageDetail = async () => {
-        if (!$appState.imageFiles.length) {
+        if (!appState.imageFiles.length) {
             return;
         }
 
-        const found = await util.exists($appState.currentImageFile.fullPath);
+        const found = await util.exists($viewState.currentImageFile.fullPath);
         if (!found) {
             return;
         }
 
-        const imageFile = $appState.currentImageFile;
+        const imageFile = $viewState.currentImageFile;
 
         try {
             const metadataString = await util.getMetadata(imageFile.fullPath);
@@ -80,7 +79,7 @@
                 reveal();
                 break;
             case "History":
-                dispatch({ type: "isHistoryOpen", value: !$appState.isHistoryOpen });
+                dispatch({ type: "isHistoryOpen", value: !$viewState.isHistoryOpen });
                 break;
             case "ShowActualSize":
                 showActualSize();
@@ -92,7 +91,7 @@
                 fetchLast();
                 break;
             case "Sort": {
-                sortImageFiles($appState.imageFiles, e.id as Pic.SortType, $appState.currentImageFile.fileName);
+                sortImageFiles(appState.imageFiles, e.id as Pic.SortType, $viewState.currentImageFile.fileName);
                 break;
             }
             case "Timestamp":
@@ -105,18 +104,18 @@
                 toggleTheme(e.id as Pic.Theme);
                 break;
             case "Reload": {
-                loadFiles($appState.currentImageFile.fullPath);
+                loadFiles($viewState.currentImageFile.fullPath);
                 break;
             }
         }
     };
 
     const fetchImage = async (index: number) => {
-        if (!$appState.imageFiles.length) {
+        if (!appState.imageFiles.length) {
             return;
         }
 
-        if (index >= $appState.imageFiles.length) {
+        if (index >= appState.imageFiles.length) {
             return;
         }
 
@@ -129,14 +128,14 @@
     };
 
     const fetchFirst = async () => {
-        if ($appState.imageFiles.length) {
+        if (appState.imageFiles.length) {
             await fetchImage(0);
         }
     };
 
     const fetchLast = async () => {
-        if ($appState.imageFiles.length) {
-            await fetchImage($appState.imageFiles.length - 1);
+        if (appState.imageFiles.length) {
+            await fetchImage(appState.imageFiles.length - 1);
         }
     };
 
@@ -159,14 +158,14 @@
     };
 
     const rotate = async () => {
-        const imageFile = $appState.currentImageFile;
+        const imageFile = $viewState.currentImageFile;
         if (!imageFile.fullPath) return;
 
         const orientation = Orientations[orientationIndex];
 
         try {
             const buffer = await util.rotate(imageFile.fullPath, imageFile.detail.orientation == 0 ? 1 : imageFile.detail.orientation, orientation);
-            if ($appState.settings.preference.timestamp == "Normal") {
+            if (appState.settings.preference.timestamp == "Normal") {
                 await util.saveFile(imageFile.fullPath, buffer);
             } else {
                 await util.saveFile(imageFile.fullPath, buffer, imageFile.timestamp);
@@ -181,7 +180,7 @@
     const deleteFile = async () => {
         if (!beforeRequest()) return;
 
-        const imageFile = $appState.currentImageFile;
+        const imageFile = $viewState.currentImageFile;
 
         if (!imageFile.fullPath) return;
 
@@ -190,100 +189,41 @@
 
             dispatch({ type: "removeFile" });
 
-            if ($appState.currentIndex > 0) {
-                dispatch({ type: "index", value: $appState.currentIndex-- });
+            if ($viewState.currentIndex > 0) {
+                dispatch({ type: "index", value: $viewState.currentIndex-- });
             }
 
-            if ($appState.imageFiles.length - 1 > $appState.currentIndex) {
-                dispatch({ type: "index", value: $appState.currentIndex++ });
+            if (appState.imageFiles.length - 1 > $viewState.currentIndex) {
+                dispatch({ type: "index", value: $viewState.currentIndex++ });
             }
 
-            await fetchImage($appState.currentIndex);
+            await fetchImage($viewState.currentIndex);
         } catch (ex: any) {
             await util.showErrorMessage(ex);
         }
         unlock();
     };
 
-    const updateSettings = (settings: Pic.Settings) => {
-        dispatch({ type: "settings", value: settings });
-    };
-
     const pin = async () => {
-        const imageFile = $appState.currentImageFile;
+        const imageFile = $viewState.currentImageFile;
 
         if (!imageFile.fullPath) return;
 
-        const settings = { ...$appState.settings };
-        settings.fullPath = imageFile.fullPath;
-        settings.directory = path.dirname(settings.fullPath);
-        settings.history[path.dirname(settings.fullPath)] = path.basename(settings.fullPath);
-        updateSettings(settings);
+        appState.settings.fullPath = imageFile.fullPath;
+        appState.settings.directory = path.dirname(appState.settings.fullPath);
+        appState.settings.history[path.dirname(appState.settings.fullPath)] = path.basename(appState.settings.fullPath);
     };
 
     const toggleMaximize = async () => {
-        const renderer = topRendererName === "main" ? await WebviewWindow.getByLabel("main") : await WebviewWindow.getByLabel("edit");
-
-        if (!renderer) return;
-
-        const maximized = await renderer.isMaximized();
-        if (maximized) {
-            await renderer.unmaximize();
-            await renderer.setPosition(util.toPhysicalPosition($appState.settings.bounds));
-            await renderer.setSize(util.toPhysicalSize($appState.settings.bounds));
-        } else {
-            const bounds = await renderer.outerPosition();
-            const size = await renderer.size();
-            const settings = { ...$appState.settings };
-            settings.bounds = util.toBounds(bounds, size);
-            updateSettings(settings);
-            await renderer.maximize();
-        }
+        await ipc.send("toggle-maximize", {});
     };
 
     const minimize = async () => {
-        const renderer = topRendererName === "main" ? await WebviewWindow.getByLabel("main") : await WebviewWindow.getByLabel("edit");
-
-        if (!renderer) return;
-
-        await renderer.minimize();
+        await ipc.send("minimize", {});
     };
-
-    const changeTopRenderer = async (name: RendererName) => {
-        topRendererName = name;
-
-        const nextTopRenderer = topRendererName === "main" ? await WebviewWindow.getByLabel("main") : await WebviewWindow.getByLabel("edit");
-        const hidingRenderer = topRendererName === "main" ? await WebviewWindow.getByLabel("edit") : await WebviewWindow.getByLabel("main");
-
-        if ($appState.settings.isMaximized) {
-            await nextTopRenderer?.maximize();
-        }
-
-        if (!$appState.settings.isMaximized) {
-            await nextTopRenderer?.setPosition(util.toPhysicalPosition($appState.settings.bounds));
-            await nextTopRenderer?.setSize(util.toPhysicalSize($appState.settings.bounds));
-            await nextTopRenderer?.unmaximize();
-        }
-
-        await hidingRenderer?.hide();
-        await nextTopRenderer?.show();
-    };
-
-    const onWindowSizeChanged = async () => {
-        const isFullscreen = await WebviewWindow.getCurrent().isFullscreen();
-        if (isFullscreen) return;
-
-        const isMaximized = await WebviewWindow.getCurrent().isMaximized();
-        dispatch({ type: "isMaximized", value: isMaximized });
-        const settings = { ...$appState.settings };
-        settings.isMaximized = isMaximized;
-        updateSettings(settings);
-    };
-
-    const onCloseEditDialog = () => changeTopRenderer("main");
 
     const reveal = async () => {
-        const imageFile = $appState.currentImageFile;
+        const imageFile = $viewState.currentImageFile;
 
         if (!imageFile.fullPath) return;
 
@@ -294,38 +234,27 @@
         const result = await ipc.invoke("open", {
             properties: ["OpenFile"],
             title: "Select image",
-            default_path: $appState.settings.directory ? $appState.settings.directory : ".",
+            default_path: appState.settings.directory ? appState.settings.directory : ".",
             filters: [{ name: "Image file", extensions: Extensions }],
         });
 
         if (result.file_paths.length == 1) {
             const file = result.file_paths[0];
-            const settings = { ...$appState.settings };
-            settings.directory = path.dirname(file);
-            updateSettings(settings);
-
+            appState.settings.directory = path.dirname(file);
             await loadFiles(file);
         }
     };
 
     const changeTimestampMode = (timestampMode: Pic.Timestamp) => {
-        const settings = { ...$appState.settings };
-        settings.preference.timestamp = timestampMode;
-        updateSettings(settings);
+        appState.settings.preference.timestamp = timestampMode;
     };
 
     const toggleMode = (mode: Pic.Mode) => {
-        const settings = { ...$appState.settings };
-        settings.preference.mode = mode;
-        updateSettings(settings);
-        dispatch({ type: "isMouseOnly", value: mode === "Mouse" });
+        appState.settings.preference.mode = mode;
     };
 
     const toggleTheme = async (theme: Pic.Theme) => {
-        const settings = { ...$appState.settings };
-        settings.preference.theme = theme;
-        updateSettings(settings);
-
+        appState.settings.preference.theme = theme;
         await ipc.invoke("change_theme", theme);
     };
 
@@ -337,41 +266,32 @@
     };
 
     const enterFullscreen = async () => {
-        dispatch({ type: "isFullscreen", value: !$appState.isFullscreen });
+        dispatch({ type: "isFullscreen", value: !$viewState.isFullscreen });
         // Cannot enter fullscreen if decoration is false
         await WebviewWindow.getCurrent().setDecorations(true);
         await WebviewWindow.getCurrent().setFullscreen(true);
     };
 
     const toggleFullscreen = async () => {
-        if ($appState.isFullscreen) {
+        if ($viewState.isFullscreen) {
             await exitFullscreen();
         } else {
             await enterFullscreen();
         }
     };
 
-    const openEditDialog = async () => {
-        const file = $appState.currentImageFile;
-        await ipc.sendTo("edit", "open-edit-dialog", { file, settings: $appState.settings });
-
-        await changeTopRenderer("edit");
+    const openEditDialog = () => {
+        appState.workingImage = $viewState.currentImageFile;
+        appState.mode = "edit";
     };
 
     const close = async () => {
-        await ipc.invoke("unlisten_file_drop", undefined);
-        const imageFile = $appState.currentImageFile;
+        const imageFile = $viewState.currentImageFile;
 
-        if (imageFile.fullPath && $appState.settings.history[imageFile.directory]) {
+        if (imageFile.fullPath && appState.settings.history[imageFile.directory]) {
             await pin();
         }
-
-        await settings.save($appState.settings);
-
-        const edit = await WebviewWindow.getByLabel("edit");
-        await edit?.close();
-
-        await WebviewWindow.getCurrent().close();
+        await ipc.send("close", {});
     };
 
     const loadFiles = async (fullPath: string) => {
@@ -381,7 +301,7 @@
         const allDirents = await ipc.invoke("readdir", directory);
         const fullPaths = allDirents.filter((dirent) => util.isImageFile(dirent)).map((dirent) => dirent.full_path);
         const imageFiles = await util.toImageFiles(fullPaths);
-        sortImageFiles(imageFiles, $appState.settings.preference.sort, targetFile);
+        sortImageFiles(imageFiles, appState.settings.preference.sort, targetFile);
     };
 
     const loadFilesFromDir = async (directory: string) => {
@@ -389,13 +309,11 @@
 
         const fullPaths = allDirents.filter((dirent) => util.isImageFile(dirent)).map((dirent) => dirent.full_path);
         const imageFiles = await util.toImageFiles(fullPaths);
-        sortImageFiles(imageFiles, $appState.settings.preference.sort);
+        sortImageFiles(imageFiles, appState.settings.preference.sort);
     };
 
     const sortImageFiles = (imageFiles: Pic.ImageFile[], sortType: Pic.SortType, currentFileName?: string) => {
-        const settings = { ...$appState.settings };
-        settings.preference.sort = sortType;
-        updateSettings(settings);
+        appState.settings.preference.sort = sortType;
 
         if (!imageFiles.length) return;
 
@@ -459,14 +377,14 @@
         }
 
         if (e.key == "Escape") {
-            if ($appState.isHistoryOpen) {
+            if ($viewState.isHistoryOpen) {
                 dispatch({ type: "isHistoryOpen", value: false });
             }
             await exitFullscreen();
         }
 
         if (e.key == "F5") {
-            await loadFiles($appState.currentImageFile.fullPath);
+            await loadFiles($viewState.currentImageFile.fullPath);
         }
 
         if (e.key === "Delete") {
@@ -483,7 +401,7 @@
     };
 
     const shouldCloseHistory = (e: MouseEvent) => {
-        if (!$appState.isHistoryOpen) return false;
+        if (!$viewState.isHistoryOpen) return false;
 
         return !e.composedPath().some((target) => target instanceof HTMLElement && target.classList.contains("history"));
     };
@@ -505,12 +423,12 @@
             return closeHistory();
         }
 
-        if (e.button == 2 && !$appState.isMouseOnly) {
+        if (e.button == 2 && appState.settings.preference.mode != "Mouse") {
             return showContextMenu(e);
         }
 
         if (!imageTransform.isImageMoved() && e.target.classList.contains("clickable")) {
-            if ($appState.isMouseOnly) {
+            if (appState.settings.preference.mode == "Mouse") {
                 e.preventDefault();
                 if (e.button == 0) {
                     await startFetch(-1);
@@ -535,9 +453,9 @@
 
     const onImageLoaded = async () => {
         await updateImageDetail();
-        orientationIndex = Orientations.indexOf($appState.currentImageFile.detail.orientation);
+        orientationIndex = Orientations.indexOf($viewState.currentImageFile.detail.orientation);
 
-        imageTransform.setImage($appState.currentImageFile);
+        imageTransform.setImage($viewState.currentImageFile);
 
         unlock();
     };
@@ -566,11 +484,11 @@
     };
 
     const beforeRequest = () => {
-        if ($appState.locked) {
+        if ($viewState.locked) {
             return false;
         }
 
-        if ($appState.isHistoryOpen) {
+        if ($viewState.isHistoryOpen) {
             closeHistory();
         }
 
@@ -580,13 +498,9 @@
 
     const startFetch = async (index: number) => {
         if (beforeRequest()) {
-            await fetchImage($appState.currentIndex + index);
+            await fetchImage($viewState.currentIndex + index);
             unlock();
         }
-    };
-
-    const onEditImage = async () => {
-        loadFiles($appState.currentImageFile.fullPath);
     };
 
     const showActualSize = () => {
@@ -594,7 +508,7 @@
     };
 
     const toggleHistory = () => {
-        dispatch({ type: "isHistoryOpen", value: !$appState.isHistoryOpen });
+        dispatch({ type: "isHistoryOpen", value: !$viewState.isHistoryOpen });
     };
 
     const closeHistory = () => {
@@ -617,52 +531,15 @@
     };
 
     const prepare = async () => {
-        await ipc.invoke("prepare_windows", $appState.settings.preference);
-        await ipc.invoke("listen_file_drop", "imageContainer");
-
-        dispatch({ type: "isMaximized", value: $appState.settings.isMaximized });
-        toggleMode($appState.settings.preference.mode);
-
-        const main = WebviewWindow.getCurrent();
-
-        await main.setPosition(util.toPhysicalPosition($appState.settings.bounds));
-
-        await main.setSize(util.toPhysicalSize($appState.settings.bounds));
-
-        if ($appState.settings.isMaximized) {
-            await main.maximize();
-        }
-
-        await main.show();
-
-        const files = await ipc.invoke("get_init_args", undefined);
-
-        if (files.length) {
-            return await loadFiles(files[0]);
-        }
-
-        if ($appState.settings.fullPath) {
-            const found = await util.exists($appState.settings.fullPath);
-            if (found) {
-                await loadFiles($appState.settings.fullPath);
-            }
+        if (appState.workingImage.fullPath) {
+            await loadFiles(appState.workingImage.fullPath);
         }
     };
 
     onMount(() => {
-        const initSettings = async () => {
-            const data = await settings.init();
-            updateSettings(data);
-        };
-        initSettings();
-        ipc.receiveOnce("backend-ready", prepare);
+        prepare();
         ipc.receive("contextmenu-event", mainContextMenuCallback);
         ipc.receiveTauri("tauri://drag-drop", onFileDrop);
-        ipc.receiveTauri("tauri://resize", onWindowSizeChanged);
-        ipc.receive("on-edit-close", onCloseEditDialog);
-        ipc.receive("toggle-maximize", toggleMaximize);
-        ipc.receive("minimize", minimize);
-        ipc.receive("after-edit-image", onEditImage);
 
         imageTransform.init(imageArea, img);
         imageTransform.on("transformchange", changeInfoTexts);
@@ -680,14 +557,20 @@
 <svelte:window onresize={imageTransform.onWindowResize} />
 <svelte:document onkeydown={onKeydown} onmousemove={imageTransform.onMousemove} onmouseup={onMouseup} oncontextmenu={(e) => e.preventDefault()} />
 
-<div class="viewport" class:dragging={$appState.dragging} class:mouse={$appState.isMouseOnly} class:history-open={$appState.isHistoryOpen} class:full={$appState.isFullscreen}>
+<div
+    in:scale={{ delay: 0, duration: 100 }}
+    class="viewport"
+    class:dragging={$viewState.dragging}
+    class:mouse={appState.settings.preference.mode == "Mouse"}
+    class:history-open={$viewState.isHistoryOpen}
+    class:full={$viewState.isFullscreen}
+>
     <div class="title-bar">
         <div class="icon-area">
             <img class="ico" src={icon} alt="" />
-            <div class="title" title={$appState.currentImageFile.fileName}>
-                {$appState.currentImageFile.fileName}
+            <div class="title" title={$viewState.currentImageFile.fileName}>
+                {$viewState.currentImageFile.fileName}
             </div>
-            <div class="category">{$appState.category}</div>
         </div>
         <div class="menu header">
             <div class="btn-area">
@@ -704,7 +587,7 @@
                     <RotateRight />
                 </div>
                 <div class="btn can-focus" onclick={pin} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    {#if $appState.settings.history[$appState.currentImageFile.directory] == $appState.currentImageFile.fileName}
+                    {#if appState.settings.history[$viewState.currentImageFile.directory] == $viewState.currentImageFile.fileName}
                         <Pinned />
                     {:else}
                         <Pin />
@@ -717,14 +600,14 @@
         </div>
         <div class="window-area">
             <div class="info-area">
-                <div class="text">{`${$appState.currentImageFile.detail.renderedWidth} x ${$appState.currentImageFile.detail.renderedHeight}`}</div>
-                <div class="text">{$appState.scaleRate}</div>
-                <div class="text">{$appState.counter}</div>
+                <div class="text">{`${$viewState.currentImageFile.detail.renderedWidth} x ${$viewState.currentImageFile.detail.renderedHeight}`}</div>
+                <div class="text">{$viewState.scaleRate}</div>
+                <div class="text">{$viewState.counter}</div>
             </div>
             <div class="control-area">
                 <div class="minimize" onclick={minimize} onkeydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
                 <div class="maximize" onclick={toggleMaximize} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <div class:maxbtn={$appState.isMaximized} class:minbtn={!$appState.isMaximized}></div>
+                    <div class:maxbtn={appState.settings.isMaximized} class:minbtn={!appState.settings.isMaximized}></div>
                 </div>
                 <div class="close" onclick={close} onkeydown={handelKeydown} role="button" tabindex="-1">&times;</div>
             </div>
@@ -732,8 +615,8 @@
     </div>
 
     <div class="container">
-        <Loader show={$appState.locked} />
-        {#if $appState.isHistoryOpen}
+        <Loader show={$viewState.locked} />
+        {#if $viewState.isHistoryOpen}
             <History {onHistoryItemClick} onClose={closeHistory} />
         {/if}
 
@@ -742,8 +625,8 @@
                 <span class="arrow left"></span>
             </div>
             <div bind:this={imageArea} class="image-area clickable current" onmousedown={onImageAreaMousedown} onwheel={imageTransform.onWheel} onkeydown={handelKeydown} role="button" tabindex="-1">
-                <img src={$appState.currentImageFile.src} bind:this={img} class="pic clickable" alt="" onload={onImageLoaded} draggable="false" />
-                {#if $appState.currentImageFile.type == "undefined"}
+                <img src={$viewState.currentImageFile.src} bind:this={img} class="pic clickable" alt="" onload={onImageLoaded} draggable="false" />
+                {#if $viewState.currentImageFile.type == "undefined"}
                     <NotFound />
                 {/if}
             </div>

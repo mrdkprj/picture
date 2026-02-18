@@ -1,6 +1,6 @@
 <script lang="ts">
     import path from "../path";
-    import { appState, dispatch } from "./appStateReducer";
+    import { appState } from "../state.svelte";
 
     let {
         onClose,
@@ -14,35 +14,31 @@
         const fullPath = (e.target as HTMLElement).textContent ?? "";
         const result = await onHistoryItemClick(fullPath);
         if (!result) {
-            const settings = reconstructHistory(path.dirname(fullPath));
-            dispatch({ type: "settings", value: settings });
+            reconstructHistory(path.dirname(fullPath));
         } else {
             onClose();
         }
     };
 
-    const reconstructHistory = (directory: string): Pic.Settings => {
-        const settings = { ...$appState.settings };
-        delete settings.history[directory];
+    const reconstructHistory = (directory: string) => {
+        delete appState.settings.history[directory];
 
-        if (settings.directory == directory) {
-            settings.directory = "";
-            settings.fullPath = "";
+        if (appState.settings.directory == directory) {
+            appState.settings.directory = "";
+            appState.settings.fullPath = "";
 
-            const historyDirectories = Object.keys(settings.history);
+            const historyDirectories = Object.keys(appState.settings.history);
             if (historyDirectories.length > 0) {
                 const newDirectory = historyDirectories[0];
-                settings.directory = newDirectory;
-                settings.fullPath = settings.history[newDirectory];
+                appState.settings.directory = newDirectory;
+                appState.settings.fullPath = appState.settings.history[newDirectory];
             }
         }
-        return settings;
     };
 
     const removeHistory = (e: MouseEvent) => {
         const fullPath = (e.target as HTMLElement).nextElementSibling?.textContent ?? "";
-        const settings = reconstructHistory(path.dirname(fullPath));
-        dispatch({ type: "settings", value: settings });
+        reconstructHistory(path.dirname(fullPath));
     };
 
     const handelKeydown = () => {};
@@ -57,7 +53,7 @@
         </div>
     </div>
     <ul id="history" class="history">
-        {#each Object.entries($appState.settings.history) as [key, value]}
+        {#each Object.entries(appState.settings.history) as [key, value]}
             <li>
                 <div class="remove-history-btn" onclick={removeHistory} onkeydown={handelKeydown} role="button" tabindex="-1">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">

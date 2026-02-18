@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { appState, dispatch } from "./appStateReducer";
+    import { editState, dispatch } from "./editStateReducer";
 
     let { onApply }: { onApply: (width: number, height: number, format: Pic.ImageFormat) => void } = $props();
     let width = $state(0);
@@ -33,11 +33,11 @@
     };
 
     onMount(() => {
-        width = $appState.currentImageFile.detail.width;
-        height = $appState.currentImageFile.detail.height;
-        widthRatio = $appState.currentImageFile.detail.width / $appState.currentImageFile.detail.height;
-        heightRatio = $appState.currentImageFile.detail.height / $appState.currentImageFile.detail.width;
-        isIcon = $appState.currentImageFile.detail.format == "ico";
+        width = $editState.currentImageFile.detail.width;
+        height = $editState.currentImageFile.detail.height;
+        widthRatio = $editState.currentImageFile.detail.width / $editState.currentImageFile.detail.height;
+        heightRatio = $editState.currentImageFile.detail.height / $editState.currentImageFile.detail.width;
+        isIcon = $editState.currentImageFile.detail.format == "ico";
     });
 </script>
 

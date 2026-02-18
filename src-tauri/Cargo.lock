@@ -2661,7 +2661,7 @@ version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77e878c846a8abae00dd069496dbe8751b16ac1c3d6bd2a7283a938e8228f90d"
 dependencies = [
- "proc-macro-crate 2.0.0",
+ "proc-macro-crate 3.4.0",
  "proc-macro2",
  "quote",
  "syn 2.0.104",
@@ -3724,9 +3724,9 @@ checksum = "0c6a884d2998352bb4daf0183589aec883f16a6da1f4dde84d8e2e9a5409a1ce"
 
 [[package]]
 name = "rs-vips"
-version = "0.2.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "000c9f9e9518a1c48953a015915c7fb77a68dde6b9885bfdd5f6da51d6fd3a86"
+checksum = "e0c8356b8f35812dcebd5b5f2544099caaf0a0142006e3a96c28deb717c8e700"
 dependencies = [
  "num-derive",
  "num-traits",
@@ -4068,7 +4068,7 @@ dependencies = [
 [[package]]
 name = "sharp"
 version = "0.1.0"
-source = "git+https://github.com/mrdkprj/sharp-rs.git?rev=7b2917de1cc1edc92f62f9d42e5b3c99de0cb6a9#7b2917de1cc1edc92f62f9d42e5b3c99de0cb6a9"
+source = "git+https://github.com/mrdkprj/sharp-rs.git?rev=0b5a6b9bd792030273a6e3e4500b0208874bd478#0b5a6b9bd792030273a6e3e4500b0208874bd478"
 dependencies = [
  "async-std",
  "num-derive",
@@ -5279,14 +5279,13 @@ dependencies = [
 
 [[package]]
 name = "wcpopup"
-version = "0.7.3"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f06f00492b6cfc73eeb82800f5fb0ee37f1988ae0abc24a63bda6ab9f1dfab0c"
+checksum = "577e07ef1efcf774407b7ddb521812e58b283625f04390a691e141a62ecb915b"
 dependencies = [
- "async-std",
  "gtk",
- "once_cell",
  "serde",
+ "smol",
  "windows",
  "windows-numerics",
  "windows-version",

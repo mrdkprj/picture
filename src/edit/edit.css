@@ -1,10 +1,10 @@
 
-.close{
+.edit .close{
     font-size: 20px;
     line-height: 25px;
 }
 
-.close:hover{
+.edit .close:hover{
     background-color: var(--secondary-highlight-color);
     color: var(--primary-forecolor);
 }

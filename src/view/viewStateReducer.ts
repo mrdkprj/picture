@@ -1,15 +1,12 @@
 import { writable } from "svelte/store";
 import { EmptyImageFile } from "../constants";
-import { DEFAULT_SETTINGS } from "../settings";
+import { appState } from "../state.svelte";
 
-type AppState = {
-    imageFiles: Pic.ImageFile[];
+type ViewState = {
     currentImageFile: Pic.ImageFile;
     currentIndex: number;
-    isMaximized: boolean;
     isFullscreen: boolean;
     pinned: string;
-    isMouseOnly: boolean;
     isHistoryOpen: boolean;
     locked: boolean;
     dragging: boolean;
@@ -17,17 +14,12 @@ type AppState = {
     fileCount: number;
     title: string;
     scaleRate: string;
-    category: string;
-    settings: Pic.Settings;
 };
 
-export const initialAppState: AppState = {
-    imageFiles: [],
+export const initialViewState: ViewState = {
     currentImageFile: EmptyImageFile,
     currentIndex: 0,
-    isMaximized: false,
     pinned: "",
-    isMouseOnly: false,
     isFullscreen: false,
     locked: false,
     dragging: false,
@@ -36,19 +28,13 @@ export const initialAppState: AppState = {
     fileCount: 0,
     title: "",
     scaleRate: "",
-    category: "",
-    settings: DEFAULT_SETTINGS,
 };
 
 type AppAction =
     | { type: "updateCurrentImage" }
     | { type: "updateImageDetail"; value: Pic.ImageDetail }
-    | { type: "settings"; value: Pic.Settings }
-    | { type: "isMaximized"; value: boolean }
     | { type: "isFullscreen"; value: boolean }
     | { type: "pin"; value: string }
-    | { type: "isMouseOnly"; value: boolean }
-    | { type: "category"; value: string }
     | { type: "locked"; value: boolean }
     | { type: "dragging"; value: boolean }
     | { type: "title"; value: string }
@@ -59,20 +45,15 @@ type AppAction =
     | { type: "updateOrientation"; value: number }
     | { type: "isHistoryOpen"; value: boolean };
 
-const updater = (state: AppState, action: AppAction): AppState => {
+const updater = (state: ViewState, action: AppAction): ViewState => {
     switch (action.type) {
         case "files": {
-            return { ...state, imageFiles: action.value, currentIndex: 0, currentImageFile: EmptyImageFile, fileCount: action.value.length };
+            appState.imageFiles = action.value;
+            return { ...state, currentIndex: 0, currentImageFile: EmptyImageFile, fileCount: action.value.length };
         }
-
-        case "isMaximized":
-            return { ...state, isMaximized: action.value };
 
         case "pin":
             return { ...state, pinned: action.value };
-
-        case "isMouseOnly":
-            return { ...state, isMouseOnly: action.value };
 
         case "updateCurrentImage": {
             const imageSrc = `${state.currentImageFile.src}?${new Date().getTime()}`;
@@ -84,19 +65,17 @@ const updater = (state: AppState, action: AppAction): AppState => {
         }
 
         case "index": {
-            const currentImageFile = state.imageFiles.length ? state.imageFiles[action.value] : EmptyImageFile;
-            const counter = `${action.value + 1} / ${state.imageFiles.length}`;
+            const currentImageFile = appState.imageFiles.length ? appState.imageFiles[action.value] : EmptyImageFile;
+            const counter = `${action.value + 1} / ${appState.imageFiles.length}`;
             currentImageFile.src = `${currentImageFile.src}?${new Date().getTime()}`;
             return { ...state, currentIndex: action.value, currentImageFile, counter };
         }
 
         case "removeFile": {
-            const files = state.imageFiles.filter((_, i) => i != state.currentIndex);
-            return { ...state, imageFiles: files };
+            const files = appState.imageFiles.filter((_, i) => i != state.currentIndex);
+            appState.imageFiles = files;
+            return state;
         }
-
-        case "settings":
-            return { ...state, settings: action.value };
 
         case "updateOrientation": {
             return { ...state, currentImageFile: { ...state.currentImageFile, detail: { ...state.currentImageFile.detail, orientation: action.value } } };
@@ -104,9 +83,6 @@ const updater = (state: AppState, action: AppAction): AppState => {
 
         case "isFullscreen":
             return { ...state, isFullscreen: action.value };
-
-        case "category":
-            return { ...state, category: action.value };
 
         case "locked":
             return { ...state, locked: action.value };
@@ -128,10 +104,10 @@ const updater = (state: AppState, action: AppAction): AppState => {
     }
 };
 
-const store = writable(initialAppState);
+const store = writable(initialViewState);
 
 export const dispatch = (action: AppAction) => {
     store.update((state) => updater(state, action));
 };
 
-export const appState = store;
+export const viewState = store;

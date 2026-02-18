@@ -9,13 +9,12 @@ type ClipPosition = {
     startY: number;
 };
 
-type AppState = {
+type EditState = {
     currentImageFile: Pic.ImageFile;
     clipCanvasStyle: string;
     clipPosition: ClipPosition;
     clipAreaStyle: string;
     editMode: Pic.EditMode;
-    isMaximized: boolean;
     loading: boolean;
     dragging: boolean;
     canUndo: boolean;
@@ -30,7 +29,7 @@ type AppState = {
     renderedHeight: number;
 };
 
-export const initialAppState: AppState = {
+export const initialEditState: EditState = {
     currentImageFile: EmptyImageFile,
     clipCanvasStyle: "",
     clipPosition: {
@@ -39,7 +38,6 @@ export const initialAppState: AppState = {
     },
     clipAreaStyle: "",
     editMode: "Resize",
-    isMaximized: false,
     loading: false,
     dragging: false,
     canUndo: false,
@@ -62,7 +60,6 @@ type AppAction =
     | { type: "startClip"; value: { rect: DOMRect; position: ClipPosition } }
     | { type: "moveClip"; value: { x: number; y: number } }
     | { type: "editMode"; value: Pic.EditMode }
-    | { type: "isMaximized"; value: boolean }
     | { type: "loading"; value: boolean }
     | { type: "dragging"; value: boolean }
     | { type: "buttonState"; value: { canUndo: boolean; canRedo: boolean; isResized: boolean } }
@@ -70,7 +67,7 @@ type AppAction =
     | { type: "allowShrink"; value: boolean }
     | { type: "toggleSizeDialog"; value: boolean };
 
-const updater = (state: AppState, action: AppAction): AppState => {
+const updater = (state: EditState, action: AppAction): EditState => {
     switch (action.type) {
         case "imageScale": {
             return {
@@ -116,9 +113,6 @@ const updater = (state: AppState, action: AppAction): AppState => {
         case "editMode":
             return { ...state, editMode: action.value };
 
-        case "isMaximized":
-            return { ...state, isMaximized: action.value };
-
         case "loading":
             return { ...state, loading: action.value };
 
@@ -145,10 +139,10 @@ const updater = (state: AppState, action: AppAction): AppState => {
     }
 };
 
-const store = writable(initialAppState);
+const store = writable(initialEditState);
 
 export const dispatch = (action: AppAction) => {
     store.update((state) => updater(state, action));
 };
 
-export const appState = store;
+export const editState = store;

@@ -19,25 +19,7 @@
                 "theme": "Dark",
                 "dragDropEnabled":true,
                 "shadow":true,
-                "url":"src/main/index.html"
-            },
-            {
-                "title":"",
-                "label":"edit",
-                "fullscreen": false,
-                "resizable": true,
-                "maximizable":true,
-                "minimizable":true,
-                "closable":true,
-                "focus":true,
-                "visible":false,
-                "decorations":false,
-                "skipTaskbar":false,
-                "transparent":false,
-                "dragDropEnabled":true,
-                "theme": "Dark",
-                "shadow":true,
-                "url":"src/edit/index.html"
+                "url":"src/index.html"
             }
         ]
     },

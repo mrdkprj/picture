@@ -29,6 +29,27 @@ class Util {
         return false;
     }
 
+    async toImageFile(fullPath: string): Promise<Pic.ImageFile> {
+        const stat = await ipc.invoke("stat", fullPath);
+
+        return {
+            fullPath,
+            src: convertFileSrc(fullPath),
+            directory: path.dirname(fullPath),
+            fileName: path.basename(fullPath),
+            type: "path",
+            timestamp: stat.mtime_ms,
+            detail: {
+                orientation: 0,
+                width: 0,
+                height: 0,
+                renderedWidth: 0,
+                renderedHeight: 0,
+                format: undefined,
+            },
+        };
+    }
+
     async toImageFiles(fullPaths: string[]): Promise<Pic.ImageFile[]> {
         const stats = await ipc.invoke("stat_all", fullPaths);
         return stats.map((stat) => {

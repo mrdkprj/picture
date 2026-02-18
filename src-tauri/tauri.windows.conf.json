@@ -12,32 +12,14 @@
                 "minimizable":true,
                 "closable":true,
                 "focus":true,
-                "visible":false,
+                "visible":true,
                 "decorations":false,
                 "skipTaskbar":false,
                 "transparent":false,
                 "theme": "Dark",
                 "dragDropEnabled":false,
                 "shadow":true,
-                "url":"src/main/index.html"
-            },
-            {
-                "title":"",
-                "label":"edit",
-                "fullscreen": false,
-                "resizable": true,
-                "maximizable":true,
-                "minimizable":true,
-                "closable":true,
-                "focus":true,
-                "visible":false,
-                "decorations":false,
-                "skipTaskbar":false,
-                "transparent":false,
-                "theme": "Dark",
-                "dragDropEnabled":false,
-                "shadow":true,
-                "url":"src/edit/index.html"
+                "url":"src/index.html"
             }
         ]
     },
