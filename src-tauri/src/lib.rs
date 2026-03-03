@@ -13,19 +13,6 @@ mod util;
 
 static THEME_DARK: &str = "dark";
 
-#[cfg(target_os = "linux")]
-fn get_window_handel(window: &WebviewWindow) -> isize {
-    use gtk::{ffi::GtkApplicationWindow, glib::translate::ToGlibPtr};
-
-    let ptr: *mut GtkApplicationWindow = window.gtk_window().unwrap().to_glib_none().0;
-    ptr as isize
-}
-
-#[cfg(target_os = "windows")]
-fn get_window_handel(window: &WebviewWindow) -> isize {
-    window.hwnd().unwrap().0 as _
-}
-
 #[derive(Serialize)]
 struct OpenedUrls(Vec<String>);
 #[tauri::command]
@@ -50,22 +37,7 @@ fn change_theme(window: tauri::WebviewWindow, payload: &str) {
 
 #[tauri::command]
 async fn open_context_menu(window: tauri::WebviewWindow, payload: menu::Position) {
-    #[cfg(target_os = "windows")]
-    {
-        menu::popup_menu(&window, window.label(), payload).await;
-    }
-    #[cfg(target_os = "linux")]
-    {
-        let gtk_window = window.clone();
-        let label = gtk_window.label().to_string();
-        window
-            .run_on_main_thread(move || {
-                gtk::glib::spawn_future_local(async move {
-                    menu::popup_menu(&gtk_window, &label, payload).await;
-                });
-            })
-            .unwrap();
-    }
+    menu::popup_menu(&window, window.label(), payload).await;
 }
 
 #[tauri::command]
@@ -268,7 +240,6 @@ pub fn run() {
             for arg in env::args().skip(1) {
                 urls.push(arg);
             }
-
             app.manage(OpenedUrls(urls));
 
             Ok(())

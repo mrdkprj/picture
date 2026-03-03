@@ -59,10 +59,7 @@
 
         if (files.length) {
             appState.workingImage = await util.toImageFile(files[0]);
-            return;
-        }
-
-        if (appState.settings.fullPath) {
+        } else if (appState.settings.fullPath) {
             const found = await util.exists(appState.settings.fullPath);
             if (found) {
                 appState.workingImage = await util.toImageFile(appState.settings.fullPath);

@@ -1,4 +1,4 @@
-use crate::{get_window_handel, Settings};
+use crate::Settings;
 use serde::Deserialize;
 use std::{collections::HashMap, sync::LazyLock};
 use tauri::async_runtime::Mutex;
@@ -75,11 +75,12 @@ fn get_menu_config(settings: &Settings) -> Config {
 }
 
 pub fn create_context_menu(window: &tauri::WebviewWindow, settings: &Settings) -> tauri::Result<()> {
-    let window_handle = get_window_handel(window);
-
     let config = get_menu_config(settings);
 
-    let mut builder = MenuBuilder::new_from_config(window_handle, config);
+    #[cfg(target_os = "linux")]
+    let mut builder = MenuBuilder::new_for_window_from_config(window.gtk_window()?, config);
+    #[cfg(target_os = "windows")]
+    let mut builder = MenuBuilder::new_for_hwnd_from_config(window.hwnd()?, config);
 
     builder.text("OpenFile", "Open File", false);
     builder.text("Reveal", "Reveal in File Explorer", false);
