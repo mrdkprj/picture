@@ -2,7 +2,9 @@ use crate::image::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferAr
 use serde::{Deserialize, Serialize};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use std::{env, path::PathBuf};
-use tauri::{Emitter, Manager, WebviewWindow};
+#[cfg(target_os = "windows")]
+use tauri::Emitter;
+use tauri::{Manager, WebviewWindow};
 use zouni::{
     dialog::{FileDialogResult, MessageResult},
     Dirent, FileAttribute,
@@ -144,6 +146,7 @@ async fn save(payload: dialog::FileDialogOptions) -> FileDialogResult {
     dialog::save(payload).await
 }
 
+#[allow(unused_variables)]
 #[tauri::command]
 fn listen_file_drop(window: WebviewWindow, app: tauri::AppHandle, payload: String) -> tauri::Result<()> {
     #[cfg(target_os = "windows")]

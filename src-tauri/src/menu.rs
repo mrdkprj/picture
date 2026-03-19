@@ -78,7 +78,7 @@ pub fn create_context_menu(window: &tauri::WebviewWindow, settings: &Settings) -
     let config = get_menu_config(settings);
 
     #[cfg(target_os = "linux")]
-    let mut builder = MenuBuilder::new_for_window_from_config(window.gtk_window()?, config);
+    let mut builder = MenuBuilder::new_for_window_from_config(&window.gtk_window()?, config);
     #[cfg(target_os = "windows")]
     let mut builder = MenuBuilder::new_for_hwnd_from_config(window.hwnd()?, config);
 
