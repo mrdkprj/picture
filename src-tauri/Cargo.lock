@@ -4068,7 +4068,6 @@ dependencies = [
 [[package]]
 name = "sharp"
 version = "0.1.0"
-source = "git+https://github.com/mrdkprj/sharp-rs.git?rev=0b5a6b9bd792030273a6e3e4500b0208874bd478#0b5a6b9bd792030273a6e3e4500b0208874bd478"
 dependencies = [
  "async-std",
  "num-derive",

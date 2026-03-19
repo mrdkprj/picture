@@ -139,8 +139,8 @@ declare global {
             detail: ImageDetail;
         };
 
-        type FormatEnum = "jpeg" | "png";
-        type ImageFormat = FormatEnum | undefined | "ico";
+        type ImageType = "jpeg" | "png" | "webp" | "tiff" | "gif" | "jp2" | "heif" | "pdf" | "magick" | "openslide" | "ppm" | "fits" | "exr" | "jxl" | "rad";
+        type ImageFormat = ImageType | "ico";
         type ImageDetail = {
             width: number;
             height: number;

@@ -1,4 +1,4 @@
-use crate::util::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
+use crate::image::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
 use serde::{Deserialize, Serialize};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use std::{env, path::PathBuf};
@@ -8,8 +8,8 @@ use zouni::{
     Dirent, FileAttribute,
 };
 mod dialog;
+mod image;
 mod menu;
-mod util;
 
 static THEME_DARK: &str = "dark";
 
@@ -114,7 +114,7 @@ fn write_text_file(payload: WriteFileInfo) -> Result<(), String> {
 
 #[tauri::command]
 fn write_image_file(payload: WriteFileInfo) -> Result<(), String> {
-    let data = util::from_base64(payload.data);
+    let data = image::from_base64(payload.data);
     std::fs::write(payload.fullPath, data).map_err(|e| e.to_string())
 }
 
@@ -182,32 +182,32 @@ fn readdir(payload: String) -> Result<Vec<Dirent>, String> {
 
 #[tauri::command]
 fn metadata(payload: MetadataRequest) -> Result<String, String> {
-    util::get_metadata(payload)
+    image::get_metadata(payload)
 }
 
 #[tauri::command]
 fn rotate(payload: RotateArgs) -> Result<String, String> {
-    util::rotate(payload)
+    image::rotate(payload)
 }
 
 #[tauri::command]
 fn resize(payload: ResizeArgs) -> Result<String, String> {
-    util::resize(payload)
+    image::resize(payload)
 }
 
 #[tauri::command]
 fn clip(payload: ClipArgs) -> Result<String, String> {
-    util::clip(payload)
+    image::clip(payload)
 }
 
 #[tauri::command]
 fn to_buffer(payload: ToBufferArgs) -> Result<String, String> {
-    util::to_buffer(payload)
+    image::to_buffer(payload)
 }
 
 #[tauri::command]
 fn to_icon(payload: ToIconArgs) -> Result<(), String> {
-    util::to_icon(payload)
+    image::to_icon(payload)
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

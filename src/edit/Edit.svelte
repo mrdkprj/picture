@@ -25,7 +25,7 @@
 
     let imageArea: HTMLDivElement;
     let img: HTMLImageElement;
-    let clipArea: HTMLDivElement;
+    let clipArea: HTMLDivElement | undefined = $state();
 
     const undoStack: Pic.ImageFile[] = [];
     const redoStack: Pic.ImageFile[] = [];
@@ -64,7 +64,7 @@
     };
 
     const clipImage = async (rect: Pic.ClipRectangle) => {
-        const imageFile = structuredClone($editState.currentImageFile);
+        const imageFile = $state.snapshot($editState.currentImageFile);
 
         try {
             const input = startEditImage(imageFile);
@@ -78,7 +78,7 @@
     };
 
     const resize = async (request: Pic.ResizeRequest) => {
-        const imageFile = structuredClone($editState.currentImageFile);
+        const imageFile = $state.snapshot($editState.currentImageFile);
 
         if (request.format) {
             return await convertImage(imageFile, request.format);
@@ -306,7 +306,7 @@
         const stack = undoStack.pop();
 
         if (stack) {
-            redoStack.push(structuredClone($editState.currentImageFile));
+            redoStack.push($state.snapshot($editState.currentImageFile));
             loadImage(stack);
         }
 
@@ -317,7 +317,7 @@
         const stack = redoStack.pop();
 
         if (stack) {
-            undoStack.push(structuredClone($editState.currentImageFile));
+            undoStack.push($state.snapshot($editState.currentImageFile));
             loadImage(stack);
         }
 
@@ -358,7 +358,9 @@
     };
 
     const getClipInfo = (): Pic.ClipRectangle | null => {
-        const clip = clipArea.getBoundingClientRect();
+        const clip = clipArea?.getBoundingClientRect();
+
+        if (!clip) return null;
 
         if (clip.width < 5 || clip.height < 5) return null;
 
@@ -447,7 +449,7 @@
             redoStack.length = 0;
         }
 
-        undoStack.push(structuredClone($editState.currentImageFile));
+        undoStack.push($state.snapshot($editState.currentImageFile));
 
         changeButtonState();
 
@@ -590,7 +592,7 @@
                         <div bind:this={clipArea} class="clip-area" style={$editState.clipAreaStyle}></div>
                     </div>
                 {/if}
-                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
                 <img src={$editState.currentImageFile.src} bind:this={img} class="pic clickable" alt="" onmousedown={onImageMousedown} onload={onImageLoaded} draggable="false" />
             </div>
         </div>

@@ -27,14 +27,18 @@
         "active": true,
         "category": "Photography",
         "icon": [
-            "icons/icon.icns",
-            "icons/icon.ico"
+            "icons/icon.png"
         ],
         "targets": "dep",
         "fileAssociations":[
             {
                 "ext": ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"]
             }
-        ]
+        ],
+        "linux": {
+            "deb": {
+                "depends":["libvips42"]
+            }
+        }
     }
 }

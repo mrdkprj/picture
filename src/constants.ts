@@ -20,7 +20,7 @@ export const EmptyImageFile: Pic.ImageFile = {
         height: 0,
         renderedWidth: 0,
         renderedHeight: 0,
-        format: undefined,
+        format: "jpeg",
     },
 };
 
@@ -44,5 +44,6 @@ export const RotateDegree: { [key: number]: number } = {
 };
 
 export const Extensions = [".jpeg", ".jpg", ".png", ".gif", ".svg", ".webp", ".ico"];
+export const Formats = ["jpeg", "png", "webp", "tiff", "gif", "jp2", "heif", "pdf", "magick", "openslide", "ppm", "fits", "exr", "jxl", "rad"];
 
 export const WSL_ROOT = "\\\\wsl.localhost";

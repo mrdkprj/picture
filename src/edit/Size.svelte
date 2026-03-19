@@ -1,11 +1,12 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { editState, dispatch } from "./editStateReducer";
+    import { Formats } from "../constants";
 
     let { onApply }: { onApply: (width: number, height: number, format: Pic.ImageFormat) => void } = $props();
     let width = $state(0);
     let height = $state(0);
-    let format: Pic.ImageFormat = $state(undefined);
+    let format: Pic.ImageFormat = $state($state.snapshot($editState.currentImageFile.detail.format));
     let keepRatio = $state(true);
     let widthRatio = 1;
     let heightRatio = 1;
@@ -63,10 +64,9 @@
             <div class="row">
                 <div class="label">Format</div>
                 <select bind:value={format}>
-                    <option value=""></option>
-                    <option value="jpeg">JPG</option>
-                    <option value="png">PNG</option>
-                    <option value="ico">ICO</option>
+                    {#each Formats as format}
+                        <option value={format}>{format}</option>
+                    {/each}
                 </select>
             </div>
         </div>
@@ -129,7 +129,6 @@
     }
 
     .label {
-        margin-right: 10px;
         margin-right: 10px;
         padding: 10px;
     }

@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use base64::{engine::general_purpose, Engine};
 use serde::{Deserialize, Serialize};
 use sharp::{
@@ -114,11 +116,7 @@ pub struct ToBufferArgs {
     format: String,
 }
 pub fn to_buffer(args: ToBufferArgs) -> Result<String, String> {
-    let format = match args.format.as_str() {
-        "png" => FormatEnum::Png,
-        "jpeg" => FormatEnum::Jpeg,
-        _ => FormatEnum::Jpeg,
-    };
+    let format = FormatEnum::from_str(&args.format).map_err(|e| e.to_string())?;
     let buffer = Sharp::new_from_file(args.file_path)?.to_format(format, None)?.to_buffer()?;
     Ok(to_base64(buffer.as_slice()))
 }

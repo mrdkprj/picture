@@ -45,7 +45,7 @@ class Util {
                 height: 0,
                 renderedWidth: 0,
                 renderedHeight: 0,
-                format: undefined,
+                format: "jpeg",
             },
         };
     }
@@ -68,7 +68,7 @@ class Util {
                     height: 0,
                     renderedWidth: 0,
                     renderedHeight: 0,
-                    format: undefined,
+                    format: "jpeg",
                 },
             };
         });
@@ -105,7 +105,7 @@ class Util {
     }
 
     async toBuffer(image: Pic.ImageFile, format: Pic.ImageFormat) {
-        return await ipc.invoke("to_buffer", { file_path: image.fullPath, format: format == "png" ? "png" : "jpeg" });
+        return await ipc.invoke("to_buffer", { file_path: image.fullPath, format });
     }
 
     async toIcon(destPath: string, source: Pic.ImageFile, mtime?: number) {
