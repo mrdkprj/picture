@@ -183,6 +183,9 @@ div:focus:not(.menu-container){
     user-select: none;
     position: relative;
     -webkit-app-region: no-drag;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .maximize{
