@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import Loader from "../assets/Loader.svelte";
-    import icon from "../assets/icon.ico";
-    import ChangeSize from "../assets/ChangeSize.svelte";
+    import icon from "../assets/icon.png";
+    import Info from "../assets/Info.svelte";
     import Clip from "../assets/Clip.svelte";
     import Redo from "../assets/Redo.svelte";
     import Resize from "../assets/Resize.svelte";
@@ -29,6 +29,7 @@
 
     const undoStack: Pic.ImageFile[] = [];
     const redoStack: Pic.ImageFile[] = [];
+    const DURATION = 100;
 
     const startEditImage = (imageFile: Pic.ImageFile): Pic.EditInput => {
         return { file: imageFile.fullPath, type: imageFile.type, format: imageFile.detail.format };
@@ -250,9 +251,11 @@
     };
 
     const onImageLoaded = async () => {
-        imageTransform.setImage($editState.currentImageFile);
-        dispatch({ type: "imageScale", value: imageTransform.getScale() });
-        dispatch({ type: "imageRatio", value: imageTransform.getImageRatio() });
+        setTimeout(() => {
+            imageTransform.setImage($editState.currentImageFile);
+            dispatch({ type: "imageScale", value: imageTransform.getScale() });
+            dispatch({ type: "imageRatio", value: imageTransform.getImageRatio() });
+        }, DURATION);
     };
 
     const changeEditMode = (mode: Pic.EditMode) => {
@@ -516,9 +519,10 @@
         dispatch({ type: "loading", value: false });
     };
 
-    const init = async () => {
+    const init = () => {
         undoStack.length = 0;
         redoStack.length = 0;
+
         loadImage(appState.workingImage);
         imageTransform.init(imageArea, img);
         imageTransform.on("transformchange", onTransformChange);
@@ -536,7 +540,7 @@
 <svelte:window onresize={onWindowResize} />
 <svelte:document onkeydown={onKeydown} onmousedown={onMouseDown} onmousemove={onMousemove} onmouseup={onMouseup} />
 
-<div in:scale={{ delay: 0, duration: 100 }} class="viewport edit" class:dragging={$editState.dragging}>
+<div in:scale={{ delay: 0, duration: DURATION }} class="viewport edit" class:dragging={$editState.dragging}>
     <div
         class="title-bar"
         class:can-undo={$editState.canUndo}
@@ -555,7 +559,7 @@
             <div class="btn-area">
                 <div class="btn clip" title="clip" onclick={() => changeEditMode("Clip")} onkeydown={handelKeydown} role="button" tabindex="-1"><Clip /></div>
                 <div class="btn resize" title="resize" onclick={resizeImage} onkeydown={handelKeydown} role="button" tabindex="-1"><Resize /></div>
-                <div class="btn size" title="change size" onclick={openSizeDialog} onkeydown={handelKeydown} role="button" tabindex="-1"><ChangeSize /></div>
+                <div class="btn size" title="change size" onclick={openSizeDialog} onkeydown={handelKeydown} role="button" tabindex="-1"><Info /></div>
                 <div class="separator btn"></div>
                 <div class="btn undo" title="Undo" onclick={undo} onkeydown={handelKeydown} role="button" tabindex="-1"><Undo /></div>
                 <div class="btn redo" title="Redo" onclick={redo} onkeydown={handelKeydown} role="button" tabindex="-1"><Redo /></div>

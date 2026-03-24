@@ -30,14 +30,10 @@
             "icons/icon.png"
         ],
         "targets": ["deb"],
-        "fileAssociations":[
-            {
-                "ext": ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"]
-            }
-        ],
         "linux": {
             "deb": {
-                "depends":["libvips42"]
+                "depends":["libvips42"],
+                "desktopTemplate": "./debian/picture.desktop"
             }
         }
     }

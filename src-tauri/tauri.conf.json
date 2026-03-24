@@ -23,7 +23,7 @@
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },
-  "identifier": "com.pic.dev",
-  "productName": "pic",
+  "identifier": "com.picture.dev",
+  "productName": "picture",
   "version": "0.0.1"
 }

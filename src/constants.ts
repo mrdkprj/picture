@@ -43,7 +43,7 @@ export const RotateDegree: { [key: number]: number } = {
     8: 270,
 };
 
-export const Extensions = [".jpeg", ".jpg", ".png", ".gif", ".svg", ".webp", ".ico"];
-export const Formats = ["jpeg", "png", "webp", "tiff", "gif", "jp2", "heif", "pdf", "magick", "openslide", "ppm", "fits", "exr", "jxl", "rad"];
+export const Extensions = ["jpeg", "jpg", "png", "gif", "svg", "webp", "ico"];
+export const Formats = ["jpeg", "png", "webp", "tiff", "gif", "jp2", "heif", "ico", "pdf", "magick", "openslide", "ppm", "fits", "exr", "jxl", "rad"];
 
 export const WSL_ROOT = "\\\\wsl.localhost";

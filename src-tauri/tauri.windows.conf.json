@@ -27,7 +27,6 @@
         "active": true,
         "category": "Photography",
         "icon": [
-            "icons/icon.icns",
             "icons/icon.ico"
         ],
         "targets": "nsis",

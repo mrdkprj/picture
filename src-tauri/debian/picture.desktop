@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=picture
+Comment=Picture Viewer
+Icon=picture
+Exec=picture %F
+StartupWMClass=picture
+Terminal=false
+Type=Application
+Categories=Photography;
+MimeType=image/*;application/octet-stream;

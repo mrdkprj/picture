@@ -128,7 +128,7 @@ class Util {
     isImageFile(dirent: Dirent) {
         if (!dirent.attributes.is_file) return false;
 
-        if (!Extensions.includes(path.extname(dirent.full_path).toLowerCase())) return false;
+        if (!Extensions.includes(path.extname(dirent.full_path).toLowerCase().replace(".", ""))) return false;
 
         return true;
     }

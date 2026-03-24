@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import Loader from "../assets/Loader.svelte";
     import History from "./History.svelte";
-    import icon from "../assets/icon.ico";
+    import icon from "../assets/icon.png";
     import { viewState, dispatch } from "./viewStateReducer";
     import { appState } from "../state.svelte";
     import { ImageTransform } from "../imageTransform";
