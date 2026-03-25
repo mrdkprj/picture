@@ -6,5 +6,5 @@ Exec=picture %F
 StartupWMClass=picture
 Terminal=false
 Type=Application
-Categories=Photography;
+Categories=Graphics;
 MimeType=image/*;application/octet-stream;

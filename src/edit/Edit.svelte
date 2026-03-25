@@ -103,10 +103,8 @@
             const fileName = image.fileName.replace(ext, "");
             const saveFileName = `${fileName}-${new Date().getTime()}${ext}`;
 
-            const result = await ipc.invoke("save", { default_path: path.join(image.directory, saveFileName), filters: [{ name: "Image", extensions: format ? [format] : ["jpeg", "jpg"] }] });
-            if (!result.canceled) {
-                savePath = result.file_paths[0];
-            }
+            const result = await ipc.invoke("save", { default_path: path.join(image.directory, saveFileName), filters: [{ name: "Image", extensions: format ? [format] : [ext.replace(".", "")] }] });
+            savePath = result.canceled ? "" : result.file_paths[0];
         }
 
         return savePath;
