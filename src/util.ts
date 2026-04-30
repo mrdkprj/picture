@@ -34,6 +34,7 @@ class Util {
 
         return {
             fullPath,
+            buffer: new Uint8Array(),
             src: convertFileSrc(fullPath),
             directory: path.dirname(fullPath),
             fileName: path.basename(fullPath),
@@ -57,6 +58,7 @@ class Util {
 
             return {
                 fullPath,
+                buffer: new Uint8Array(),
                 src: convertFileSrc(fullPath),
                 directory: path.dirname(fullPath),
                 fileName: path.basename(fullPath),
@@ -82,40 +84,39 @@ class Util {
         }
     }
 
-    async rotate(fullPath: string, currenOrientation: number, nextOrientation: number) {
+    async rotate(fullPath: string, currenOrientation: number, nextOrientation: number): Promise<Uint8Array> {
         let degree = RotateDegree[currenOrientation] - RotateDegree[nextOrientation];
 
         if (currenOrientation === 1 || currenOrientation === 8) {
             degree = RotateDegree[nextOrientation] - RotateDegree[currenOrientation];
         }
-        console.log({ file_path: fullPath, degree, orientation: nextOrientation });
         return await ipc.invoke("rotate", { file_path: fullPath, degree, orientation: nextOrientation });
     }
 
-    async resizeBuffer(input: Pic.EditInput, size: Pic.ImageSize) {
-        return await ipc.invoke("resize", { file: input.file, is_buffer: input.type == "buffer", width: size.width, height: size.height });
+    async resizeBuffer(input: Pic.EditInput, size: Pic.ImageSize): Promise<Uint8Array> {
+        return await ipc.invoke("resize", { file: input.file, buffer: input.buffer, is_buffer: input.type == "buffer", width: size.width, height: size.height });
     }
 
-    async clipBuffer(input: Pic.EditInput, size: Pic.ClipRectangle) {
-        return await ipc.invoke("clip", { file: input.file, is_buffer: input.type == "buffer", top: size.top, left: size.left, width: size.width, height: size.height });
+    async clipBuffer(input: Pic.EditInput, size: Pic.ClipRectangle): Promise<Uint8Array> {
+        return await ipc.invoke("clip", { file: input.file, buffer: input.buffer, is_buffer: input.type == "buffer", top: size.top, left: size.left, width: size.width, height: size.height });
     }
 
-    async getMetadata(fullPath: string, isBuffer = false) {
-        return await ipc.invoke("metadata", { file: fullPath, is_buffer: isBuffer });
+    async getMetadata(fullPath: string, buffer: Uint8Array, isBuffer = false) {
+        return await ipc.invoke("metadata", { file: fullPath, buffer, is_buffer: isBuffer });
     }
 
-    async toBuffer(image: Pic.ImageFile, format: Pic.ImageFormat) {
+    async toBuffer(image: Pic.ImageFile, format: Pic.ImageFormat): Promise<Uint8Array> {
         return await ipc.invoke("to_buffer", { file_path: image.fullPath, format });
     }
 
     async toIcon(destPath: string, source: Pic.ImageFile, mtime?: number) {
-        await ipc.invoke("to_icon", { image: source.fullPath, is_buffer: source.type == "buffer", out_path: destPath });
+        await ipc.invoke("to_icon", { file: source.fullPath, buffer: source.buffer, is_buffer: source.type == "buffer", out_path: destPath });
         if (mtime) {
             await ipc.invoke("utimes", { file_path: destPath, atime_ms: mtime, mtime_ms: mtime });
         }
     }
 
-    async saveFile(destPath: string, data: string, mtime?: number) {
+    async saveFile(destPath: string, data: Uint8Array, mtime?: number) {
         await ipc.invoke("write_image_file", {
             fullPath: destPath,
             data,

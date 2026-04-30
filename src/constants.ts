@@ -11,6 +11,7 @@ export const EmptyImageFile: Pic.ImageFile = {
     fullPath: "",
     directory: "",
     fileName: "",
+    buffer: new Uint8Array(),
     type: "undefined",
     src: "",
     timestamp: 0,

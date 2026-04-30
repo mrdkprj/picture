@@ -1,0 +1,755 @@
+use crate::image::{
+    common::{determine_image_type, determine_image_type_from_str, heif_primary_page_reopen, image_type_supports_page, image_type_supports_unlimited, set_density, ImageType, InputDescriptor},
+    in_range,
+    pipeline::PipelineBaton,
+    Colour, InvalidParameterError,
+};
+use rs_vips::{
+    bindings::{vips_band_format_is8bit, VIPS_META_N_PAGES, VIPS_META_PAGE_HEIGHT},
+    enums::{Align, BandFormat, FailOn, Interpretation, TextWrap},
+    error::Error::OperationError,
+    voption::{Setter, VOption},
+    Result, VipsImage,
+};
+use std::path::Path;
+
+#[derive(Debug, Clone, Default)]
+pub struct SharpOptions {
+    pub auto_orient: Option<bool>,
+    pub fail_on: Option<FailOn>,
+    pub limit_input_pixels: Option<usize>,
+    pub unlimited: Option<bool>,
+    pub sequential_read: Option<bool>,
+    pub density: Option<f64>,
+    pub ignore_icc: Option<bool>,
+    pub pages: Option<i32>,
+    pub page: Option<i32>,
+    pub subifd: Option<i32>,
+    pub level: Option<i32>,
+    pub pdf_background: Option<Colour>,
+    pub animated: Option<bool>,
+    pub raw: Option<CreateRaw>,
+    pub create: Option<Create>,
+    pub text: Option<CreateText>,
+    pub join: Option<Join>,
+    pub svg_stylesheet: Option<String>,
+    pub svg_high_bitdepth: Option<bool>,
+    pub jp2_oneshot: Option<bool>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CreateRaw {
+    pub width: i32,
+    pub height: i32,
+    pub channels: i32,
+    /* Specifies that the raw input has already been premultiplied, set to true to avoid premultiplying the image. (optional, default false) */
+    pub premultiplied: bool,
+    /** The height of each page/frame for animated images, must be an integral factor of the overall image height. */
+    pub page_height: Option<i32>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Create {
+    /** i32 of pixels wide. */
+    pub width: i32,
+    /** i32 of pixels high. */
+    pub height: i32,
+    /** i32 of bands, 3 for RGB, 4 for RGBA */
+    pub channels: i32,
+    /** Parsed by the [color](https://www.npmjs.org/package/color) module to extract values for red, green, blue and alpha. */
+    pub background: Colour,
+    /** Describes a noise to be created. */
+    pub noise: Option<Noise>,
+    /** The height of each page/frame for animated images, must be an integral factor of the overall image height. */
+    pub page_height: Option<i32>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Noise {
+    /** type of generated noise, currently only gaussian is supported. */
+    pub gaussian: Option<bool>,
+    /** mean of pixels in generated noise. */
+    pub mean: Option<f64>,
+    /** standard deviation of pixels in generated noise. */
+    pub sigma: Option<f64>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CreateText {
+    /** Text to render as a UTF-8 string. It can contain Pango markup, for example `<i>Le</i>Monde`. */
+    pub text: String,
+    /** Font name to render with. */
+    pub font: Option<String>,
+    /** Absolute filesystem path to a font file that can be used by `font`. */
+    pub fontfile: Option<String>,
+    /** Integral i32 of pixels to word-wrap at. Lines of text wider than this will be broken at word boundaries. (optional, default `0`) */
+    pub width: Option<i32>,
+    /**
+     * Integral i32 of pixels high. When defined, `dpi` will be ignored and the text will automatically fit the pixel resolution
+     * defined by `width` and `height`. Will be ignored if `width` is not specified or set to 0. (optional, default `0`)
+     */
+    pub height: Option<i32>,
+    /** Text alignment ('left', 'centre', 'center', 'right'). (optional, default 'left') */
+    pub align: Option<TextAlign>,
+    /** Set this to true to apply justification to the text. (optional, default `false`) */
+    pub justify: Option<bool>,
+    /** The resolution (size) at which to render the text. Does not take effect if `height` is specified. (optional, default `72`) */
+    pub dpi: Option<i32>,
+    /**
+     * Set this to true to enable RGBA output. This is useful for colour emoji rendering,
+     * or support for pango markup features like `<span foreground="red">Red!</span>`. (optional, default `false`)
+     */
+    pub rgba: Option<bool>,
+    /** Text line height in points. Will use the font line height if none is specified. (optional, default `0`) */
+    pub spacing: Option<i32>,
+    /** Word wrapping style when width is provided, one of: 'word', 'char', 'word-char' (prefer word, fallback to char) or 'none' */
+    pub wrap: Option<TextWrap>,
+}
+
+#[derive(Debug, Clone)]
+pub enum TextAlign {
+    Left,
+    Centre,
+    Right,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Join {
+    /** Number of images per row. */
+    pub across: Option<i32>,
+    /** Treat input as frames of an animated image. */
+    pub animated: Option<bool>,
+    /** Space between images, in pixels. */
+    pub shim: Option<i32>,
+    /** Background colour. */
+    pub background: Option<Colour>,
+    /** Horizontal alignment. */
+    pub halign: Option<HorizontalAlignment>,
+    /* Vertical alignment. */
+    pub valign: Option<VerticalAlignment>,
+}
+
+#[derive(Debug, Clone)]
+pub enum HorizontalAlignment {
+    Left,
+    Centre,
+    Right,
+}
+
+#[derive(Debug, Clone)]
+pub enum VerticalAlignment {
+    Top,
+    Centre,
+    Bottom,
+}
+
+#[derive(Debug, Clone)]
+pub struct RotateOptions {
+    pub background: Colour,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum SharpInput {
+    Single(MixedInput),
+    Mixed(Vec<MixedInput>),
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum MixedInput {
+    Path(String),
+    Buffer(Vec<u8>),
+    Create(Create),
+    Raw(CreateRaw),
+    Text(CreateText),
+    None(),
+}
+
+impl Default for MixedInput {
+    fn default() -> Self {
+        Self::None()
+    }
+}
+impl MixedInput {
+    pub(crate) fn path<P: AsRef<Path>>(file: P) -> Self {
+        MixedInput::Path(file.as_ref().to_string_lossy().to_string())
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Input {
+    pub(crate) inner: MixedInput,
+}
+
+impl Input {
+    pub fn path<P: AsRef<Path>>(file: P) -> Self {
+        Self {
+            inner: MixedInput::Path(file.as_ref().to_string_lossy().to_string()),
+        }
+    }
+
+    pub fn buffer(buffer: Vec<u8>) -> Self {
+        Self {
+            inner: MixedInput::Buffer(buffer),
+        }
+    }
+
+    pub fn create(create: Create) -> Self {
+        Self {
+            inner: MixedInput::Create(create),
+        }
+    }
+
+    pub fn raw(raw: CreateRaw) -> Self {
+        Self {
+            inner: MixedInput::Raw(raw),
+        }
+    }
+
+    pub fn text(text: CreateText) -> Self {
+        Self {
+            inner: MixedInput::Text(text),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Inputs {
+    pub(crate) inner: Vec<MixedInput>,
+}
+
+impl Inputs {
+    pub fn new() -> Self {
+        Self {
+            inner: Vec::new(),
+        }
+    }
+
+    pub fn path<P: AsRef<Path>>(mut self, file: P) -> Self {
+        self.inner.push(MixedInput::Path(file.as_ref().to_string_lossy().to_string()));
+        self
+    }
+
+    pub fn buffer(mut self, buffer: Vec<u8>) -> Self {
+        self.inner.push(MixedInput::Buffer(buffer));
+        self
+    }
+
+    pub fn create(mut self, create: Create) -> Self {
+        self.inner.push(MixedInput::Create(create));
+        self
+    }
+
+    pub fn raw(mut self, raw: CreateRaw) -> Self {
+        self.inner.push(MixedInput::Raw(raw));
+        self
+    }
+
+    pub fn text(mut self, text: CreateText) -> Self {
+        self.inner.push(MixedInput::Text(text));
+        self
+    }
+}
+
+pub(crate) fn create_input_descriptor(input: SharpInput, input_options: Option<SharpOptions>, baton: &mut PipelineBaton) -> core::result::Result<InputDescriptor, String> {
+    let mut input_descriptor = InputDescriptor {
+        auto_orient: false,
+        fail_on: FailOn::Warning,
+        limit_input_pixels: 0x3FFF_u32.pow(2) as _,
+        ignore_icc: false,
+        unlimited: false,
+        ..Default::default()
+    };
+
+    let mut input_options = input_options.clone();
+    match input {
+        SharpInput::Mixed(mixed) => {
+            let join: core::result::Result<Vec<InputDescriptor>, String> = mixed.into_iter().map(|input| create_input_descriptor(SharpInput::Single(input), input_options.clone(), baton)).collect();
+            baton.join = join?;
+        }
+        SharpInput::Single(input) => {
+            match input {
+                MixedInput::Path(file) => {
+                    input_descriptor.file = file;
+                }
+                MixedInput::Buffer(buffer) => {
+                    if buffer.is_empty() {
+                        return Err("Input Buffer is empty".to_string());
+                    }
+                    input_descriptor.buffer = buffer;
+                    input_descriptor.is_buffer = true;
+                }
+                MixedInput::Create(create) => {
+                    input_options = Some(SharpOptions {
+                        create: Some(create),
+                        ..Default::default()
+                    })
+                }
+                MixedInput::Raw(raw) => {
+                    input_options = Some(SharpOptions {
+                        raw: Some(raw),
+                        ..Default::default()
+                    })
+                }
+                MixedInput::Text(text) => {
+                    input_options = Some(SharpOptions {
+                        text: Some(text),
+                        ..Default::default()
+                    })
+                }
+                MixedInput::None() => {}
+            };
+        }
+    }
+
+    if let Some(input_options) = input_options {
+        // failOn
+        if let Some(fail_on) = input_options.fail_on {
+            input_descriptor.fail_on = fail_on;
+        }
+        // autoOrient
+        if let Some(auto_orient) = input_options.auto_orient {
+            input_descriptor.auto_orient = auto_orient;
+        }
+        // Density
+        if let Some(density) = input_options.density {
+            input_descriptor.density = density;
+        }
+        // Ignore embeddded ICC profile
+        if let Some(ignore_icc) = input_options.ignore_icc {
+            input_descriptor.ignore_icc = ignore_icc;
+        }
+        // limitInputPixels
+        if let Some(limit_input_pixels) = input_options.limit_input_pixels {
+            input_descriptor.limit_input_pixels = limit_input_pixels;
+        }
+        // unlimited
+        if let Some(unlimited) = input_options.unlimited {
+            input_descriptor.unlimited = unlimited;
+        }
+
+        // Raw pixel input
+        if let Some(raw) = input_options.raw {
+            if !in_range(raw.channels as _, 1.0, 4.0) {
+                return Err(InvalidParameterError!("raw.channels", "number between 1 and 4", raw.channels));
+            }
+
+            input_descriptor.raw_width = raw.width;
+            input_descriptor.raw_height = raw.height;
+            input_descriptor.raw_channels = raw.channels as _;
+            input_descriptor.raw_premultiplied = raw.premultiplied;
+            if let Some(page_height) = raw.page_height {
+                if page_height > 0 && page_height <= raw.height {
+                    if raw.height % page_height != 0 {
+                        return Err(format!("Expected raw.height {} to be a multiple of raw.pageHeight {}", raw.height, page_height));
+                    } else {
+                        input_descriptor.raw_page_height = page_height
+                    }
+                } else {
+                    return Err(InvalidParameterError!("raw.page_height", "positive integer", page_height));
+                }
+            }
+
+            input_descriptor.raw_depth = BandFormat::Uchar;
+        }
+        // Multi-page input (GIF, TIFF, PDF)
+        if let Some(animated) = input_options.animated {
+            input_descriptor.pages = if animated {
+                -1
+            } else {
+                1
+            };
+        }
+        if let Some(pages) = input_options.pages {
+            input_descriptor.pages = pages;
+        }
+        if let Some(page) = input_options.page {
+            input_descriptor.page = page;
+        }
+        // SVG
+        if let Some(svg_stylesheet) = input_options.svg_stylesheet {
+            input_descriptor.svg_stylesheet = svg_stylesheet;
+        }
+        if let Some(svg_high_bitdepth) = input_options.svg_high_bitdepth {
+            input_descriptor.svg_high_bitdepth = svg_high_bitdepth;
+        }
+        // Multi-level input (OpenSlide)
+        if let Some(level) = input_options.level {
+            input_descriptor.level = level;
+        }
+        // Sub Image File Directory (TIFF)
+        if let Some(subifd) = input_options.subifd {
+            input_descriptor.subifd = subifd;
+        }
+        // PDF background colour
+        if let Some(pdf_background) = input_options.pdf_background {
+            input_descriptor.pdf_background = pdf_background.rgba;
+        }
+        // Use JPEG 2000 oneshot mode?
+        if let Some(jp2_oneshot) = input_options.jp2_oneshot {
+            input_descriptor.jp2_oneshot = jp2_oneshot;
+        }
+        // Create new image
+        if let Some(create) = input_options.create {
+            input_descriptor.create_width = create.width;
+            input_descriptor.create_height = create.height;
+            input_descriptor.create_channels = create.channels as _;
+
+            if let Some(page_height) = create.page_height {
+                if page_height > 0 && page_height <= create.height {
+                    if create.height % page_height != 0 {
+                        return Err(format!("Expected create.height {} to be a multiple of create.pageHeight {}", create.height, page_height));
+                    } else {
+                        input_descriptor.create_page_height = page_height
+                    }
+                } else {
+                    return Err(InvalidParameterError!("create.page_height", "positive integer", page_height));
+                }
+            }
+
+            // Noise
+            if let Some(noise) = create.noise {
+                if !in_range(create.channels as _, 1.0, 4.0) {
+                    return Err(InvalidParameterError!("create.channels", "number between 1 and 4", create.channels));
+                }
+                if let Some(gaussian) = noise.gaussian {
+                    if gaussian {
+                        input_descriptor.create_noise_type = "gaussian".to_string();
+                    }
+                }
+                input_descriptor.create_noise_mean = 128.0;
+                if let Some(mean) = noise.mean {
+                    input_descriptor.create_noise_mean = mean;
+                }
+                input_descriptor.create_noise_sigma = 30.0;
+                if let Some(sigma) = noise.sigma {
+                    input_descriptor.create_noise_sigma = sigma;
+                }
+            } else {
+                if !in_range(create.channels as _, 3.0, 4.0) {
+                    return Err(InvalidParameterError!("create.channels", "number between 3 and 4", create.channels));
+                }
+                input_descriptor.create_background = create.background.rgba;
+            }
+
+            input_descriptor.buffer.clear();
+        }
+        // Create a new image with text
+        if let Some(text) = input_options.text {
+            input_descriptor.text_value = text.text;
+
+            if let Some(font) = text.font {
+                input_descriptor.text_font = font;
+            }
+            if let Some(fontfile) = text.fontfile {
+                input_descriptor.text_fontfile = fontfile;
+            }
+            if let Some(width) = text.width {
+                input_descriptor.text_width = width;
+            }
+            if let Some(height) = text.height {
+                input_descriptor.text_height = height;
+            }
+            if let Some(align) = text.align {
+                input_descriptor.text_align = match align {
+                    TextAlign::Centre => Align::Centre,
+                    TextAlign::Left => Align::Low,
+                    TextAlign::Right => Align::High,
+                }
+            } else {
+                input_descriptor.text_align = Align::Low;
+            }
+            if let Some(justify) = text.justify {
+                input_descriptor.text_justify = justify;
+            }
+            if let Some(dpi) = text.dpi {
+                input_descriptor.text_dpi = dpi;
+            } else {
+                input_descriptor.text_dpi = 72;
+            }
+            if let Some(rgba) = text.rgba {
+                input_descriptor.text_rgba = rgba;
+            }
+            if let Some(spacing) = text.spacing {
+                input_descriptor.text_spacing = spacing;
+            }
+            if let Some(wrap) = text.wrap {
+                input_descriptor.text_wrap = wrap;
+            }
+            input_descriptor.buffer.clear();
+        }
+        // Join images together
+        if let Some(join) = input_options.join {
+            if let Some(animated) = join.animated {
+                input_descriptor.join_animated = animated;
+            }
+            if let Some(across) = join.across {
+                input_descriptor.join_across = across;
+            }
+            if let Some(shim) = join.shim {
+                input_descriptor.join_shim = shim;
+            }
+            if let Some(background) = join.background {
+                input_descriptor.join_background = background.rgba;
+            }
+            if let Some(halign) = join.halign {
+                input_descriptor.join_halign = match halign {
+                    HorizontalAlignment::Centre => Align::Centre,
+                    HorizontalAlignment::Left => Align::Low,
+                    HorizontalAlignment::Right => Align::High,
+                };
+            }
+            if let Some(valign) = join.valign {
+                input_descriptor.join_valign = match valign {
+                    VerticalAlignment::Bottom => Align::High,
+                    VerticalAlignment::Centre => Align::Centre,
+                    VerticalAlignment::Top => Align::Low,
+                };
+            }
+        }
+    }
+
+    Ok(input_descriptor)
+}
+
+/*
+    Open an image from the given InputDescriptor (filesystem, compressed buffer, raw pixel data)
+*/
+pub(crate) fn open_input(descriptor: &InputDescriptor) -> Result<(VipsImage, ImageType)> {
+    if descriptor.is_buffer {
+        open_input_from_buffer(descriptor)
+    } else {
+        open_input_from_file(descriptor)
+    }
+}
+
+pub(crate) fn open_input_from_buffer(descriptor: &InputDescriptor) -> Result<(VipsImage, ImageType)> {
+    let (image, image_type) = if descriptor.raw_channels > 0 {
+        // Raw, uncompressed pixel data
+        let is8bit = unsafe { vips_band_format_is8bit(descriptor.raw_depth as _) } == 1;
+
+        let mut image = VipsImage::new_from_memory_copy(descriptor.buffer.as_slice(), descriptor.raw_width, descriptor.raw_height, descriptor.raw_channels, descriptor.raw_depth)?;
+
+        let space = if descriptor.raw_channels < 3 {
+            if is8bit {
+                Interpretation::BW
+            } else {
+                Interpretation::Grey16
+            }
+        } else if is8bit {
+            Interpretation::Srgb
+        } else {
+            Interpretation::Rgb16
+        };
+
+        unsafe {
+            (*image.as_mut_ptr()).Type = space as i32;
+            if descriptor.raw_page_height > 0 {
+                image.set_int(VIPS_META_PAGE_HEIGHT, descriptor.raw_page_height)?;
+                image.set_int(VIPS_META_N_PAGES, descriptor.raw_height / descriptor.raw_page_height)?;
+            }
+            let image = if descriptor.raw_premultiplied {
+                image.unpremultiply()?
+            } else {
+                image
+            };
+            (image, ImageType::RAW)
+        }
+    } else {
+        // Compressed data
+        let image_type = determine_image_type(&descriptor.buffer);
+        let dotest = true;
+        if image_type != ImageType::UNKNOWN {
+            let option = get_options_for_image_type(image_type, descriptor);
+            // test
+            let image = if dotest {
+                let buffer = descriptor.buffer.clone();
+                VipsImage::new_from_buffer_with_opts(&buffer, "", option)?
+            } else {
+                VipsImage::new_from_buffer_with_opts(&descriptor.buffer, "", option)?
+            };
+
+            if image_type == ImageType::SVG || image_type == ImageType::PDF || image_type == ImageType::MAGICK {
+                (set_density(image, descriptor.density)?, image_type)
+            } else if image_type == ImageType::HEIF {
+                let mut descriptor = descriptor.clone();
+                if heif_primary_page_reopen(&image, &mut descriptor)? {
+                    let option = get_options_for_image_type(image_type, &descriptor);
+                    // test
+                    let image = if dotest {
+                        let buffer = descriptor.buffer.clone();
+                        VipsImage::new_from_buffer_with_opts(&buffer, "", option)?
+                    } else {
+                        VipsImage::new_from_buffer_with_opts(&descriptor.buffer, "", option)?
+                    };
+                    (image, image_type)
+                } else {
+                    (image, image_type)
+                }
+            } else {
+                (image, image_type)
+            }
+        } else {
+            return Err(OperationError("Input buffer contains unsupported image format".to_string()));
+        }
+    };
+
+    // Limit input images to a given number of pixels, where pixels = width * height
+    if descriptor.limit_input_pixels > 0 && image.get_width() * image.get_height() > descriptor.limit_input_pixels as i32 {
+        return Err(OperationError("Input image exceeds pixel limit".to_string()));
+    }
+
+    Ok((image, image_type))
+}
+
+pub(crate) fn open_input_from_file(descriptor: &InputDescriptor) -> Result<(VipsImage, ImageType)> {
+    let channels = descriptor.create_channels;
+
+    let (image, image_type) = if channels > 0 {
+        // Create new image
+        let mut image = if descriptor.create_noise_type == "gaussian" {
+            let mut bands: Vec<VipsImage> = Vec::with_capacity(channels as _);
+
+            for _band in 0..channels {
+                bands.push(VipsImage::gaussnoise_with_opts(
+                    descriptor.create_width,
+                    descriptor.create_height,
+                    VOption::new().set("mean", descriptor.create_noise_mean).set("sigma", descriptor.create_noise_sigma),
+                )?);
+            }
+            let image = VipsImage::bandjoin(bands.as_slice())?;
+            let interpretation = if channels < 3 {
+                Interpretation::BW
+            } else {
+                Interpretation::Srgb
+            };
+            image.copy_with_opts(VOption::new().set("interpretation", interpretation as i32))?
+        } else {
+            let mut background = vec![descriptor.create_background[0], descriptor.create_background[1], descriptor.create_background[2]];
+            if channels == 4 {
+                background.push(descriptor.create_background[3]);
+            }
+
+            let image = VipsImage::new_matrix(descriptor.create_width, descriptor.create_height)?;
+            let interpretation = if channels < 3 {
+                Interpretation::BW
+            } else {
+                Interpretation::Srgb
+            };
+            let image = image.copy_with_opts(VOption::new().set("interpretation", interpretation as i32))?;
+
+            VipsImage::new_from_image(&image, &background)?
+        };
+
+        if descriptor.create_page_height > 0 {
+            image.set_int(VIPS_META_PAGE_HEIGHT, descriptor.create_page_height)?;
+            image.set_int(VIPS_META_N_PAGES, descriptor.create_height / descriptor.create_page_height)?;
+        }
+
+        let image = image.cast(BandFormat::Uchar)?;
+
+        (image, ImageType::RAW)
+    } else if !descriptor.text_value.is_empty() {
+        // Create a new image with text
+        let mut text_options = VOption::new()
+            .set("align", descriptor.text_align as i32)
+            .set("justify", descriptor.text_justify)
+            .set("rgba", descriptor.text_rgba)
+            .set("spacing", descriptor.text_spacing)
+            .set("wrap", descriptor.text_wrap as i32)
+            .set("autofit_dpi", descriptor.text_autofit_dpi);
+
+        if descriptor.text_width > 0 {
+            text_options.add("width", descriptor.text_width);
+        }
+        // Ignore dpi if height is set
+        if descriptor.text_width > 0 && descriptor.text_height > 0 {
+            text_options.add("height", descriptor.text_height);
+        } else if descriptor.text_dpi > 0 {
+            text_options.add("dpi", descriptor.text_dpi);
+        }
+        if !descriptor.text_font.is_empty() {
+            text_options.add("font", &descriptor.text_font);
+        }
+        if !descriptor.text_fontfile.is_empty() {
+            text_options.add("fontfile", &descriptor.text_fontfile);
+        }
+        let image = VipsImage::text_with_opts(&descriptor.text_value, text_options)?;
+
+        if descriptor.text_rgba {
+            (image, ImageType::RAW)
+        } else {
+            (image.copy_with_opts(VOption::new().set("interpretation", Interpretation::BW as i32))?, ImageType::RAW)
+        }
+    } else {
+        // From filesystem
+        let image_type = determine_image_type_from_str(&descriptor.file);
+
+        if image_type == ImageType::MISSING {
+            if descriptor.file.contains("<svg") {
+                let msg = format!("Input file is missing, did you mean Buffer.from('{:?}')", descriptor.file[0..8].to_string());
+                return Err(OperationError(msg));
+            }
+            return Err(OperationError(format!("Input file is missing: {}", descriptor.file)));
+        }
+        if image_type != ImageType::UNKNOWN {
+            let option = get_options_for_image_type(image_type, descriptor);
+            let image = VipsImage::new_from_file_with_opts(&descriptor.file, option)?;
+
+            if image_type == ImageType::SVG || image_type == ImageType::PDF || image_type == ImageType::MAGICK {
+                (set_density(image, descriptor.density)?, image_type)
+            } else if image_type == ImageType::HEIF {
+                let mut descriptor = descriptor.clone();
+                if heif_primary_page_reopen(&image, &mut descriptor)? {
+                    let option = get_options_for_image_type(image_type, &descriptor);
+                    let image = VipsImage::new_from_buffer_with_opts(&descriptor.buffer, "", option)?;
+                    (image, image_type)
+                } else {
+                    (image, image_type)
+                }
+            } else {
+                (image, image_type)
+            }
+        } else {
+            return Err(OperationError("Input file contains unsupported image format".to_string()));
+        }
+    };
+
+    // Limit input images to a given number of pixels, where pixels = width * height
+    if descriptor.limit_input_pixels > 0 && image.get_width() * image.get_height() > descriptor.limit_input_pixels as i32 {
+        return Err(OperationError("Input image exceeds pixel limit".to_string()));
+    }
+
+    Ok((image, image_type))
+}
+
+fn get_options_for_image_type(image_type: ImageType, descriptor: &'_ InputDescriptor) -> VOption<'_> {
+    let mut option = VOption::new().set("access", descriptor.access as i32).set("fail_on", descriptor.fail_on as i32);
+
+    if descriptor.unlimited && image_type_supports_unlimited(&image_type) {
+        option.add("unlimited", true);
+    }
+
+    if image_type_supports_page(&image_type) {
+        option.add("n", descriptor.pages);
+        option.add("page", descriptor.page.max(0));
+    }
+
+    match image_type {
+        ImageType::SVG => {
+            option.add("dpi", descriptor.density);
+            option.add("stylesheet", &descriptor.svg_stylesheet);
+            option.add("high_bitdepth", descriptor.svg_high_bitdepth)
+        }
+        ImageType::TIFF => option.add("subifd", descriptor.tiff_subifd),
+        ImageType::PDF => {
+            option.add("dpi", descriptor.density);
+            option.add("background", descriptor.pdf_background.as_slice())
+        }
+        ImageType::OPENSLIDE => option.add("openSlideLevel", descriptor.open_slide_level),
+        ImageType::JP2 => option.add("oneshot", descriptor.jp2_oneshot),
+        ImageType::MAGICK => option.add("density", descriptor.density),
+        _ => {}
+    };
+
+    option
+}

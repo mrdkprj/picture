@@ -32,15 +32,15 @@
     const DURATION = 100;
 
     const startEditImage = (imageFile: Pic.ImageFile): Pic.EditInput => {
-        return { file: imageFile.fullPath, type: imageFile.type, format: imageFile.detail.format };
+        return { file: imageFile.fullPath, buffer: imageFile.buffer, type: imageFile.type, format: imageFile.detail.format };
     };
 
-    const endEditImage = async (result: string, imageFile: Pic.ImageFile) => {
-        imageFile.fullPath = result;
+    const endEditImage = async (result: Uint8Array, imageFile: Pic.ImageFile) => {
+        imageFile.buffer = new Uint8Array(result);
         imageFile.type = "buffer";
 
         try {
-            const metadataString = await util.getMetadata(result, true);
+            const metadataString = await util.getMetadata(imageFile.fullPath, result, true);
             const metadata = JSON.parse(metadataString);
 
             imageFile.detail.orientation = metadata.orientation == 0 ? 1 : metadata.orientation;
@@ -57,6 +57,7 @@
             } else {
                 imageFile.detail.format = metadata.format;
             }
+
             return imageFile;
         } catch (ex: any) {
             await util.showErrorMessage(ex);
@@ -81,7 +82,7 @@
     const resize = async (request: Pic.ResizeRequest) => {
         const imageFile = $state.snapshot($editState.currentImageFile);
 
-        if (request.format) {
+        if (request.format && request.format != $editState.currentImageFile.detail.format) {
             return await convertImage(imageFile, request.format);
         }
 
@@ -153,9 +154,9 @@
 
         try {
             if (appState.settings.preference.timestamp == "Normal") {
-                await util.saveFile(savePath, $editState.currentImageFile.fullPath);
+                await util.saveFile(savePath, $editState.currentImageFile.buffer);
             } else {
-                await util.saveFile(savePath, $editState.currentImageFile.fullPath, $editState.currentImageFile.timestamp);
+                await util.saveFile(savePath, $editState.currentImageFile.buffer, $editState.currentImageFile.timestamp);
             }
             await ipc.sendTo("main", "after-edit-image", {});
             close();

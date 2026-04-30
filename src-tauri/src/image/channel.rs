@@ -1,0 +1,140 @@
+use crate::image::{
+    in_range,
+    input::{create_input_descriptor, Input, SharpInput, SharpOptions},
+    Image, InvalidParameterError,
+};
+use rs_vips::enums::OperationBoolean;
+
+impl Image {
+    /**
+     * Remove alpha channels, if any. This is a no-op if the image does not have an alpha channel.
+     *
+     * See also {@link /api-operation#flatten|flatten}.
+     *
+     * @example
+     * Image('rgba.png')
+     *   .removeAlpha()
+     *   .toFile('rgb.png', function(err, info) {
+     *     // rgb.png is a 3 channel image without an alpha channel
+     *   });
+     *
+     * @returns {Image}
+     */
+    pub fn remove_alpha(mut self) -> Self {
+        self.options.remove_alpha = true;
+        self
+    }
+
+    /**
+     * Ensure the output image has an alpha transparency channel.
+     * If missing, the added alpha channel will have the specified
+     * transparency level, defaulting to fully-opaque (1).
+     * This is a no-op if the image already has an alpha channel.
+     *
+     * @since 0.21.2
+     *
+     * @example
+     * // rgba.png will be a 4 channel image with a fully-opaque alpha channel
+     * await Image('rgb.jpg')
+     *   .ensureAlpha()
+     *   .toFile('rgba.png')
+     *
+     * @example
+     * // rgba is a 4 channel image with a fully-transparent alpha channel
+     * const rgba = await Image(rgb)
+     *   .ensureAlpha(0)
+     *   .toBuffer();
+     *
+     * @param {number} [alpha=1] - alpha transparency level (0=fully-transparent, 1=fully-opaque)
+     * @returns {Image}
+     * @throws {Error} Invalid alpha transparency level
+     */
+    pub fn ensure_alpha(mut self, alpha: f64) -> Result<Self, String> {
+        if in_range(alpha, 0.0, 1.1) {
+            self.options.ensure_alpha = alpha;
+        } else {
+            return Err(InvalidParameterError!("alpha", "number between 0 and 1", alpha));
+        }
+        Ok(self)
+    }
+
+    /**
+     * Extract a single channel from a multi-channel image.
+     * { red: 0, green: 1, blue: 2, alpha: 3 }
+     *
+     * @example
+     * // green.jpg is a greyscale image containing the green channel of the input
+     * await Image(input)
+     *   .extractChannel('green')
+     *   .toFile('green.jpg');
+     *
+     * @example
+     * // red1 is the red value of the first pixel, red2 the second pixel etc.
+     * const [red1, red2, ...] = await Image(input)
+     *   .extractChannel(0)
+     *   .raw()
+     *   .toBuffer();
+     *
+     * @param {number|string} channel - zero-indexed channel/band number to extract, or `red`, `green`, `blue` or `alpha`.
+     * @returns {Image}
+     * @throws {Error} Invalid channel
+     */
+    pub fn extract_channel(mut self, channel: u32) -> Result<Self, String> {
+        if in_range(channel as _, 0.0, 4.0) {
+            self.options.extract_channel = channel as _;
+        } else {
+            return Err(InvalidParameterError!("channel", "integer or one of: red, green, blue, alpha", channel));
+        }
+        Ok(self)
+    }
+
+    /**
+     * Join one or more channels to the image.
+     * The meaning of the added channels depends on the output colourspace, set with `toColourspace()`.
+     * By default the output image will be web-friendly sRGB, with additional channels interpreted as alpha channels.
+     * Channel ordering follows vips convention:
+     * - sRGB: 0: Red, 1: Green, 2: Blue, 3: Alpha.
+     * - CMYK: 0: Magenta, 1: Cyan, 2: Yellow, 3: Black, 4: Alpha.
+     *
+     * Buffers may be any of the image formats supported by Image.
+     * For raw pixel input, the `options` object should contain a `raw` attribute, which follows the format of the attribute of the same name in the `Image()` constructor.
+     *
+     * @param {Array<string|Buffer>|string|Buffer} images - one or more images (file paths, Buffers).
+     * @param {Object} options - image options, see `Image()` constructor.
+     * @returns {Image}
+     * @throws {Error} Invalid parameters
+     */
+    pub fn join_channel(mut self, images: &[Input], options: Option<SharpOptions>) -> Result<Self, String> {
+        if images.is_empty() && options.is_none() {
+            return Ok(self);
+        }
+
+        for image in images {
+            let descriptor = create_input_descriptor(SharpInput::Single(image.inner.clone()), options.clone(), &mut self.options)?;
+            self.options.join_channel_in.push(descriptor);
+        }
+
+        Ok(self)
+    }
+
+    /**
+     * Perform a bitwise boolean operation on all input image channels (bands) to produce a single channel output image.
+     *
+     * @example
+     * Image('3-channel-rgb-input.png')
+     *   .bandbool(Image.bool.and)
+     *   .toFile('1-channel-output.png', function (err, info) {
+     *     // The output will be a single channel image where each pixel `P = R & G & B`.
+     *     // If `I(1,1) = [247, 170, 14] = [0b11110111, 0b10101010, 0b00001111]`
+     *     // then `O(1,1) = 0b11110111 & 0b10101010 & 0b00001111 = 0b00000010 = 2`.
+     *   });
+     *
+     * @param {string} boolOp - one of `and`, `or` or `eor` to perform that bitwise operation, like the C logic operators `&`, `|` and `^` respectively.
+     * @returns {Image}
+     * @throws {Error} Invalid parameters
+     */
+    pub fn bandbool(mut self, bool_op: OperationBoolean) -> Self {
+        self.options.band_bool_op = Some(bool_op);
+        self
+    }
+}

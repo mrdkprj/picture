@@ -1,4 +1,4 @@
-use crate::image::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
+use crate::image_helper::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
 use serde::{Deserialize, Serialize};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use std::{env, path::PathBuf};
@@ -11,6 +11,7 @@ use zouni::{
 };
 mod dialog;
 mod image;
+mod image_helper;
 mod menu;
 
 static THEME_DARK: &str = "dark";
@@ -114,10 +115,15 @@ fn write_text_file(payload: WriteFileInfo) -> Result<(), String> {
     std::fs::write(payload.fullPath, payload.data).map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+struct WriteImageInfo {
+    fullPath: String,
+    data: Vec<u8>,
+}
 #[tauri::command]
-fn write_image_file(payload: WriteFileInfo) -> Result<(), String> {
-    let data = image::from_base64(payload.data);
-    std::fs::write(payload.fullPath, data).map_err(|e| e.to_string())
+fn write_image_file(payload: WriteImageInfo) -> Result<(), String> {
+    std::fs::write(payload.fullPath, payload.data).map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -185,32 +191,32 @@ fn readdir(payload: String) -> Result<Vec<Dirent>, String> {
 
 #[tauri::command]
 fn metadata(payload: MetadataRequest) -> Result<String, String> {
-    image::get_metadata(payload)
+    image_helper::get_metadata(payload)
 }
 
 #[tauri::command]
-fn rotate(payload: RotateArgs) -> Result<String, String> {
-    image::rotate(payload)
+fn rotate(payload: RotateArgs) -> Result<Vec<u8>, String> {
+    image_helper::rotate(payload)
 }
 
 #[tauri::command]
-fn resize(payload: ResizeArgs) -> Result<String, String> {
-    image::resize(payload)
+fn resize(payload: ResizeArgs) -> Result<Vec<u8>, String> {
+    image_helper::resize(payload)
 }
 
 #[tauri::command]
-fn clip(payload: ClipArgs) -> Result<String, String> {
-    image::clip(payload)
+fn clip(payload: ClipArgs) -> Result<Vec<u8>, String> {
+    image_helper::clip(payload)
 }
 
 #[tauri::command]
-fn to_buffer(payload: ToBufferArgs) -> Result<String, String> {
-    image::to_buffer(payload)
+fn to_buffer(payload: ToBufferArgs) -> Result<Vec<u8>, String> {
+    image_helper::to_buffer(payload)
 }
 
 #[tauri::command]
 fn to_icon(payload: ToIconArgs) -> Result<(), String> {
-    image::to_icon(payload)
+    image_helper::to_icon(payload)
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

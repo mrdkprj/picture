@@ -31,6 +31,11 @@ type WriteFileInfo = {
     data: string;
 };
 
+type WriteImageInfo = {
+    fullPath: string;
+    data: Uint8Array;
+};
+
 type DialogOptions = {
     dialog_type: "message" | "confirm" | "ask";
     title?: string;
@@ -72,6 +77,7 @@ type ToBufferArgs = {
 
 type ResizeArgs = {
     file: string;
+    buffer: Uint8Array;
     is_buffer: boolean;
     width: number;
     height: number;
@@ -79,6 +85,7 @@ type ResizeArgs = {
 
 type ClipArgs = {
     file: string;
+    buffer: Uint8Array;
     is_buffer: boolean;
     left: number;
     top: number;
@@ -87,13 +94,15 @@ type ClipArgs = {
 };
 
 type ToIconArgs = {
-    image: string;
+    file: string;
+    buffer: Uint8Array;
     is_buffer: boolean;
     out_path: string;
 };
 
 type MetadataRequest = {
     file: string;
+    buffer: Uint8Array;
     is_buffer: boolean;
 };
 
@@ -130,7 +139,7 @@ type TauriCommandMap = {
     create: TauriCommand<string, undefined>;
     read_text_file: TauriCommand<string, string>;
     write_text_file: TauriCommand<WriteFileInfo, undefined>;
-    write_image_file: TauriCommand<WriteFileInfo, undefined>;
+    write_image_file: TauriCommand<WriteImageInfo, undefined>;
     stat: TauriCommand<string, FileAttribute>;
     stat_all: TauriCommand<string[], FileAttributeExt[]>;
     message: TauriCommand<DialogOptions, MessageResult>;
@@ -138,11 +147,11 @@ type TauriCommandMap = {
     open: TauriCommand<FileDialogOptions, FileDialogResult>;
     listen_file_drop: TauriCommand<string, undefined>;
     unlisten_file_drop: TauriCommand<undefined, undefined>;
-    rotate: TauriCommand<RotateArgs, string>;
-    resize: TauriCommand<ResizeArgs, string>;
-    clip: TauriCommand<ClipArgs, string>;
+    rotate: TauriCommand<RotateArgs, Uint8Array>;
+    resize: TauriCommand<ResizeArgs, Uint8Array>;
+    clip: TauriCommand<ClipArgs, Uint8Array>;
     metadata: TauriCommand<MetadataRequest, string>;
-    to_buffer: TauriCommand<ToBufferArgs, string>;
+    to_buffer: TauriCommand<ToBufferArgs, Uint8Array>;
     to_icon: TauriCommand<ToIconArgs, undefined>;
     utimes: TauriCommand<UtimesArgs, undefined>;
 };

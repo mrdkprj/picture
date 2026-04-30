@@ -42,7 +42,7 @@
         const imageFile = $viewState.currentImageFile;
 
         try {
-            const metadataString = await util.getMetadata(imageFile.fullPath);
+            const metadataString = await util.getMetadata(imageFile.fullPath, imageFile.buffer);
 
             const metadata = JSON.parse(metadataString);
 

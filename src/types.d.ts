@@ -131,6 +131,7 @@ declare global {
 
         type ImageFile = {
             fullPath: string;
+            buffer: Uint8Array;
             src: string;
             directory: string;
             fileName: string;
@@ -139,7 +140,7 @@ declare global {
             detail: ImageDetail;
         };
 
-        type ImageType = "jpeg" | "png" | "webp" | "tiff" | "gif" | "jp2" | "heif" | "pdf" | "magick" | "openslide" | "ppm" | "fits" | "exr" | "jxl" | "rad";
+        type ImageType = "jpeg" | "png" | "webp" | "tiff" | "gif" | "jp2" | "heif" | "pdf" | "magick" | "openslide" | "ppm" | "fits" | "exr" | "jxl" | "rad" | "svg";
         type ImageFormat = ImageType | "ico";
         type ImageDetail = {
             width: number;
@@ -158,6 +159,7 @@ declare global {
 
         type EditInput = {
             file: string;
+            buffer: Uint8Array;
             type: ImageSroucetype;
             format: Pic.ImageFormat;
         };

@@ -80,7 +80,8 @@ const updater = (state: EditState, action: AppAction): EditState => {
         case "loadImage": {
             const image = action.value;
             const isEdited = action.value.type === "buffer";
-            image.src = action.value.type === "path" ? `${action.value.src}?${new Date().getTime()}` : `data:image/jpeg;base64,${action.value.fullPath}`;
+            const mimetype = action.value.detail.format == "svg" ? "svg+xml" : action.value.detail.format;
+            image.src = action.value.type === "path" ? `${action.value.src}?${new Date().getTime()}` : `data:image/${mimetype};base64,${action.value.buffer.toBase64()}`;
             return { ...state, currentImageFile: image, isEdited };
         }
 
