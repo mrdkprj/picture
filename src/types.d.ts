@@ -3,7 +3,7 @@ declare global {
         api: Api;
     }
 
-    type RendererName = "main" | "edit";
+    type RendererName = "main";
     type Renderer = { [key in RendererName]: Electron.BrowserWindow | undefined };
 
     type MainChannelEventMap = {

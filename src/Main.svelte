@@ -8,7 +8,7 @@
     import { IPC } from "./ipc";
     import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
-    const ipc = new IPC("edit");
+    const ipc = new IPC("main");
 
     let ready = $state(false);
     let settings = new Settings();
