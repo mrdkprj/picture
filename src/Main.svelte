@@ -42,6 +42,7 @@
 
     const prepare = async () => {
         appState.settings = await settings.init();
+
         await ipc.invoke("prepare_windows", appState.settings.preference);
         await ipc.invoke("listen_file_drop", "imageContainer");
 
