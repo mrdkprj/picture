@@ -1,4 +1,4 @@
-use crate::image_helper::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs};
+use crate::image_helper::{ClipArgs, MetadataRequest, ResizeArgs, RotateArgs, ToBufferArgs, ToIconArgs, WriteImageInfo};
 use serde::{Deserialize, Serialize};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use std::{env, path::PathBuf};
@@ -115,15 +115,9 @@ fn write_text_file(payload: WriteFileInfo) -> Result<(), String> {
     std::fs::write(payload.fullPath, payload.data).map_err(|e| e.to_string())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-struct WriteImageInfo {
-    fullPath: String,
-    data: Vec<u8>,
-}
 #[tauri::command]
 fn write_image_file(payload: WriteImageInfo) -> Result<(), String> {
-    std::fs::write(payload.fullPath, payload.data).map_err(|e| e.to_string())
+    image_helper::write_image_file(payload)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -126,3 +126,13 @@ pub fn to_icon(args: ToIconArgs) -> Result<(), String> {
     let _ = image.to_icon(args.out_path, None)?;
     Ok(())
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct WriteImageInfo {
+    fullPath: String,
+    data: Vec<u8>,
+}
+pub fn write_image_file(payload: WriteImageInfo) -> Result<(), String> {
+    Image::new_from_buffer(payload.data)?.to_file(payload.fullPath)
+}
