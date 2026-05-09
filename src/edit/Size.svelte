@@ -10,7 +10,7 @@
     let keepRatio = $state(true);
     let widthRatio = 1;
     let heightRatio = 1;
-    let isIcon = $state(false);
+    let isIcon = $derived(format == "ico");
 
     const close = () => {
         dispatch({ type: "toggleSizeDialog", value: false });
@@ -38,7 +38,6 @@
         height = $editState.currentImageFile.detail.height;
         widthRatio = $editState.currentImageFile.detail.width / $editState.currentImageFile.detail.height;
         heightRatio = $editState.currentImageFile.detail.height / $editState.currentImageFile.detail.width;
-        isIcon = $editState.currentImageFile.detail.format == "ico";
     });
 </script>
 

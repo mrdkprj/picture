@@ -82,8 +82,8 @@
     const resize = async (request: Pic.ResizeRequest) => {
         const imageFile = $state.snapshot($editState.currentImageFile);
 
-        if (request.format && request.format != $editState.currentImageFile.detail.format) {
-            return await convertImage(imageFile, request.format);
+        if (request.format) {
+            return await convertImage(imageFile, $editState.currentImageFile.detail.format, request.format);
         }
 
         try {
@@ -111,20 +111,20 @@
         return savePath;
     };
 
-    const convertImage = async (image: Pic.ImageFile, format: Pic.ImageFormat) => {
-        const savePath = await getSaveDestPath(image, true, format);
+    const convertImage = async (image: Pic.ImageFile, fromFormat: Pic.ImageFormat, toFormat: Pic.ImageFormat) => {
+        const savePath = await getSaveDestPath(image, true, toFormat);
 
         if (!savePath) return;
 
         try {
-            if (format == "ico") {
+            if (toFormat == "ico") {
                 if (appState.settings.preference.timestamp == "Normal") {
                     await util.toIcon(savePath, image);
                 } else {
                     await util.toIcon(savePath, image, image.timestamp);
                 }
             } else {
-                const buffer = await util.toBuffer(image, format);
+                const buffer = await util.toBuffer(image, fromFormat, toFormat);
                 if (appState.settings.preference.timestamp == "Normal") {
                     await util.saveFile(savePath, buffer);
                 } else {

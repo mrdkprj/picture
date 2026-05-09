@@ -102,12 +102,16 @@ pub fn get_metadata(args: MetadataRequest) -> Result<String, String> {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ToBufferArgs {
     file_path: String,
-    format: String,
+    from_format: String,
+    to_format: String,
 }
 pub fn to_buffer(args: ToBufferArgs) -> Result<Vec<u8>, String> {
-    let format = FormatEnum::from_str(&args.format).map_err(|e| e.to_string())?;
-    let buffer = Image::new_from_file(args.file_path)?.to_format(format, None)?.to_buffer()?;
-    Ok(buffer)
+    let format = FormatEnum::from_str(&args.to_format).map_err(|e| e.to_string())?;
+    if args.from_format == "ico" {
+        Image::from_icon_file(args.file_path)?.to_format(format, None)?.to_buffer()
+    } else {
+        Image::new_from_file(args.file_path)?.to_format(format, None)?.to_buffer()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

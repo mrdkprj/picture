@@ -72,7 +72,8 @@ type RotateArgs = {
 
 type ToBufferArgs = {
     file_path: string;
-    format: string;
+    from_format: string;
+    to_format: string;
 };
 
 type ResizeArgs = {

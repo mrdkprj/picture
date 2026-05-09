@@ -105,8 +105,8 @@ class Util {
         return await ipc.invoke("metadata", { file: fullPath, buffer, is_buffer: isBuffer });
     }
 
-    async toBuffer(image: Pic.ImageFile, format: Pic.ImageFormat): Promise<Uint8Array> {
-        return await ipc.invoke("to_buffer", { file_path: image.fullPath, format });
+    async toBuffer(image: Pic.ImageFile, fromFormat: Pic.ImageFormat, toFormat: Pic.ImageFormat): Promise<Uint8Array> {
+        return await ipc.invoke("to_buffer", { file_path: image.fullPath, from_format: fromFormat, to_format: toFormat });
     }
 
     async toIcon(destPath: string, source: Pic.ImageFile, mtime?: number) {
