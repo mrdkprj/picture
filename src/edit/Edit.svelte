@@ -536,7 +536,7 @@
     const handelKeydown = () => {};
 </script>
 
-<svelte:window onresize={onWindowResize} />
+<svelte:window onresize={onWindowResize} oncontextmenu={(e) => e.preventDefault()} />
 <svelte:document onkeydown={onKeydown} onmousedown={onMouseDown} onmousemove={onMousemove} onmouseup={onMouseup} />
 
 <div in:scale={{ delay: 0, duration: DURATION }} class="viewport edit" class:dragging={$editState.dragging}>
