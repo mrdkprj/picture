@@ -914,7 +914,7 @@ pub(crate) fn pipline(mut baton: PipelineBaton) -> Result<PipelineBaton> {
 
     if has_gain_map(&image) {
         if baton.keep_gain_map {
-            gain_map = image.get_gainmap().unwrap();
+            // gain_map = image.get_gainmap().unwrap();
             if image.get_typeof("gainmap-scale-factor")? == get_g_type(G_TYPE_INT) {
                 gainmap_scale_factor = image.get_int("gainmap-scale-factor")?;
             }

@@ -6,7 +6,7 @@
     import { viewState, dispatch } from "./viewStateReducer";
     import { appState } from "../state.svelte";
     import { ImageTransform } from "../imageTransform";
-    import { Orientations, FORWARD, BACKWARD, Extensions, BROWSER_SHORTCUT_KEYS } from "../constants";
+    import { Orientations, FORWARD, BACKWARD, Extensions, BROWSER_SHORTCUT_KEYS, OS } from "../constants";
     import { IPC } from "../ipc";
     import util from "../util";
     import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -565,7 +565,7 @@
     class:history-open={$viewState.isHistoryOpen}
     class:full={$viewState.isFullscreen}
 >
-    <div class="title-bar">
+    <div class="title-bar" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
         <div class="icon-area">
             <img class="ico" src={icon} alt="" />
             <div class="title" title={$viewState.currentImageFile.fileName}>

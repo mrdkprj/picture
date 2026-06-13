@@ -13,7 +13,7 @@
     import { editState, dispatch } from "./editStateReducer";
     import { appState } from "../state.svelte";
     import { ImageTransform } from "../imageTransform";
-    import { BROWSER_SHORTCUT_KEYS, OrientationName } from "../constants";
+    import { BROWSER_SHORTCUT_KEYS, OrientationName, OS } from "../constants";
     import Size from "./Size.svelte";
     import { IPC } from "../ipc";
     import util from "../util";
@@ -549,6 +549,7 @@
         class:clipping={$editState.editMode == "Clip"}
         class:shrinkable={$editState.allowShrink}
         class:is-icon={$editState.currentImageFile.detail.format == "ico"}
+        data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}
     >
         <div class="icon-area">
             <img class="ico" src={icon} alt="" />
