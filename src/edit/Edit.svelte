@@ -19,6 +19,7 @@
     import util from "../util";
     import path from "../path";
     import { scale } from "svelte/transition";
+    import GtkResize from "../GtkResize.svelte";
 
     const imageTransform = new ImageTransform();
     const ipc = new IPC("main");
@@ -540,6 +541,9 @@
 <svelte:document onkeydown={onKeydown} onmousedown={onMouseDown} onmousemove={onMousemove} onmouseup={onMouseup} />
 
 <div in:scale={{ delay: 0, duration: DURATION }} class="viewport edit" class:dragging={$editState.dragging}>
+    {#if util.isLinux()}
+        <GtkResize />
+    {/if}
     <div
         class="title-bar"
         class:can-undo={$editState.canUndo}
@@ -551,8 +555,8 @@
         class:is-icon={$editState.currentImageFile.detail.format == "ico"}
         data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}
     >
-        <div class="icon-area">
-            <img class="ico" src={icon} alt="" />
+        <div class="icon-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
+            <img class="ico" src={icon} alt="" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null} />
             <span id="title">{$editState.currentImageFile.fileName}</span>
         </div>
         <div class="menu header">
@@ -570,9 +574,9 @@
             </div>
         </div>
         <div class="window-area">
-            <div class="info-area">
-                <div class="scale-text">{`${$editState.renderedWidth} x ${$editState.renderedHeight}`}</div>
-                <div class="scale-text">{`${Math.floor($editState.imageRatio * 100)}%`}</div>
+            <div class="info-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
+                <div class="scale-text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{`${$editState.renderedWidth} x ${$editState.renderedHeight}`}</div>
+                <div class="scale-text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{`${Math.floor($editState.imageRatio * 100)}%`}</div>
             </div>
             <div class="control-area">
                 <div class="minimize" onclick={minimize} onkeydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
