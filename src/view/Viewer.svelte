@@ -21,6 +21,7 @@
     import OpenMenu from "../assets/OpenMenu.svelte";
     import NotFound from "../assets/NotFound.svelte";
     import { scale } from "svelte/transition";
+    import GtkResize from "../GtkResize.svelte";
 
     let orientationIndex = 0;
     let imageArea: HTMLDivElement;
@@ -565,15 +566,18 @@
     class:history-open={$viewState.isHistoryOpen}
     class:full={$viewState.isFullscreen}
 >
+    {#if util.isLinux()}
+        <GtkResize />
+    {/if}
     <div class="title-bar" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-        <div class="icon-area">
-            <img class="ico" src={icon} alt="" />
-            <div class="title" title={$viewState.currentImageFile.fileName}>
+        <div class="icon-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
+            <img class="ico" src={icon} alt="" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null} />
+            <div class="title" title={$viewState.currentImageFile.fileName} data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
                 {$viewState.currentImageFile.fileName}
             </div>
         </div>
-        <div class="menu header">
-            <div class="btn-area">
+        <div class="menu header" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
+            <div class="btn-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
                 <div class="btn can-focus" onclick={openEditDialog} onkeydown={handelKeydown} role="button" tabindex="-1">
                     <EditPic />
                 </div>
@@ -599,10 +603,12 @@
             </div>
         </div>
         <div class="window-area">
-            <div class="info-area">
-                <div class="text">{`${$viewState.currentImageFile.detail.renderedWidth} x ${$viewState.currentImageFile.detail.renderedHeight}`}</div>
-                <div class="text">{$viewState.scaleRate}</div>
-                <div class="text">{$viewState.counter}</div>
+            <div class="info-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
+                <div class="text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
+                    {`${$viewState.currentImageFile.detail.renderedWidth} x ${$viewState.currentImageFile.detail.renderedHeight}`}
+                </div>
+                <div class="text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{$viewState.scaleRate}</div>
+                <div class="text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{$viewState.counter}</div>
             </div>
             <div class="control-area">
                 <div class="minimize" onclick={minimize} onkeydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
