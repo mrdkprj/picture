@@ -9,12 +9,12 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    "tauri": "tauri",
-    "start": "tauri dev",
+    "tauri": "tauri dev",
+    "start": "tauri dev --config src-tauri/tauri.dev.conf.json",
     "release": "tauri build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.9.1"
+    "@tauri-apps/api": "2.11.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",

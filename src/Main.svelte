@@ -56,7 +56,7 @@
             await main.maximize();
         }
 
-        const files = await ipc.invoke("get_init_args", undefined);
+        const files = await ipc.invoke("get_init_args", null);
 
         if (files.length) {
             appState.workingImage = await util.toImageFile(files[0]);
@@ -72,7 +72,7 @@
     };
 
     const close = async () => {
-        await ipc.invoke("unlisten_file_drop", undefined);
+        await ipc.invoke("unlisten_file_drop", null);
 
         await settings.save(appState.settings);
 

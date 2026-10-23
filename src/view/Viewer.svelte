@@ -104,10 +104,12 @@
             case "Theme":
                 toggleTheme(e.id as Pic.Theme);
                 break;
-            case "Reload": {
+            case "Reload":
                 loadFiles($viewState.currentImageFile.fullPath);
                 break;
-            }
+            case "CopyImage":
+                copyImage();
+                break;
         }
     };
 
@@ -244,6 +246,10 @@
             appState.settings.directory = path.dirname(file);
             await loadFiles(file);
         }
+    };
+
+    const copyImage = async () => {
+        await ipc.invoke("write_url_to_clipboard", $viewState.currentImageFile.fullPath);
     };
 
     const changeTimestampMode = (timestampMode: Pic.Timestamp) => {

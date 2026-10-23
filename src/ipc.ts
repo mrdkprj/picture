@@ -128,33 +128,34 @@ type MessageResult = {
 
 type TauriCommandMap = {
     prepare_windows: TauriCommand<Pic.Preference, boolean>;
-    get_init_args: TauriCommand<undefined, string[]>;
+    get_init_args: TauriCommand<null, string[]>;
     readdir: TauriCommand<string, Dirent[]>;
-    open_context_menu: TauriCommand<Pic.Position, undefined>;
-    change_theme: TauriCommand<Pic.Theme, undefined>;
-    reveal: TauriCommand<string, undefined>;
-    trash: TauriCommand<string, undefined>;
+    open_context_menu: TauriCommand<Pic.Position, null>;
+    change_theme: TauriCommand<Pic.Theme, null>;
+    reveal: TauriCommand<string, null>;
+    trash: TauriCommand<string, null>;
     exists: TauriCommand<string, boolean>;
-    mkdir: TauriCommand<string, undefined>;
-    mkdir_all: TauriCommand<string, undefined>;
-    create: TauriCommand<string, undefined>;
+    mkdir: TauriCommand<string, null>;
+    mkdir_all: TauriCommand<string, null>;
+    create: TauriCommand<string, null>;
     read_text_file: TauriCommand<string, string>;
-    write_text_file: TauriCommand<WriteFileInfo, undefined>;
-    write_image_file: TauriCommand<WriteImageInfo, undefined>;
+    write_text_file: TauriCommand<WriteFileInfo, null>;
+    write_image_file: TauriCommand<WriteImageInfo, null>;
     stat: TauriCommand<string, FileAttribute>;
     stat_all: TauriCommand<string[], FileAttributeExt[]>;
     message: TauriCommand<DialogOptions, MessageResult>;
     save: TauriCommand<FileDialogOptions, FileDialogResult>;
     open: TauriCommand<FileDialogOptions, FileDialogResult>;
-    listen_file_drop: TauriCommand<string, undefined>;
-    unlisten_file_drop: TauriCommand<undefined, undefined>;
+    listen_file_drop: TauriCommand<string, null>;
+    unlisten_file_drop: TauriCommand<null, null>;
     rotate: TauriCommand<RotateArgs, Uint8Array>;
     resize: TauriCommand<ResizeArgs, Uint8Array>;
     clip: TauriCommand<ClipArgs, Uint8Array>;
     metadata: TauriCommand<MetadataRequest, string>;
     to_buffer: TauriCommand<ToBufferArgs, Uint8Array>;
-    to_icon: TauriCommand<ToIconArgs, undefined>;
-    utimes: TauriCommand<UtimesArgs, undefined>;
+    to_icon: TauriCommand<ToIconArgs, null>;
+    utimes: TauriCommand<UtimesArgs, null>;
+    write_url_to_clipboard: TauriCommand<String, null>;
 };
 
 export class IPCBase {

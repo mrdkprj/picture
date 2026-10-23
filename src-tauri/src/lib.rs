@@ -213,6 +213,15 @@ fn to_icon(payload: ToIconArgs) -> Result<(), String> {
     image_helper::to_icon(payload)
 }
 
+#[tauri::command]
+fn write_url_to_clipboard(window: WebviewWindow, payload: String) -> Result<(), String> {
+    #[cfg(windows)]
+    let window_handle = window.hwnd().unwrap().0 as isize;
+    #[cfg(not(windows))]
+    let window_handle = 0;
+    zouni::clipboard::write_uris(window_handle, &[payload], zouni::Operation::Copy)
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[allow(non_snake_case)]
 pub struct Settings {
@@ -276,6 +285,7 @@ pub fn run() {
             clip,
             to_buffer,
             to_icon,
+            write_url_to_clipboard,
         ])
         .run(tauri::generate_context!())
         .expect("error while running application");
