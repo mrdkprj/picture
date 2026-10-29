@@ -156,6 +156,7 @@ type TauriCommandMap = {
     to_icon: TauriCommand<ToIconArgs, null>;
     utimes: TauriCommand<UtimesArgs, null>;
     write_url_to_clipboard: TauriCommand<String, null>;
+    copy_image_to_clipboard: TauriCommand<String, null>;
 };
 
 export class IPCBase {

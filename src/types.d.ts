@@ -64,6 +64,7 @@ declare global {
             Mode: Pic.Mode;
             Theme: Pic.Theme;
             Reload: null;
+            CopyUrl: null;
             CopyImage: null;
         };
 

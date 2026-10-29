@@ -85,6 +85,7 @@ pub fn create_context_menu(window: &tauri::WebviewWindow, settings: &Settings) -
     builder.text("OpenFile", "Open File", false);
     builder.text("Reveal", "Reveal in File Explorer", false);
     builder.text("CopyImage", "Copy", false);
+    builder.text("CopyUrl", "Copy Path", false);
     builder.text("History", "History", false);
     builder.text("ShowActualSize", "Show Actual Size", false);
     builder.separator();

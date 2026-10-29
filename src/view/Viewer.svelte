@@ -107,8 +107,11 @@
             case "Reload":
                 loadFiles($viewState.currentImageFile.fullPath);
                 break;
+            case "CopyUrl":
+                copyImage(true);
+                break;
             case "CopyImage":
-                copyImage();
+                copyImage(false);
                 break;
         }
     };
@@ -248,8 +251,12 @@
         }
     };
 
-    const copyImage = async () => {
-        await ipc.invoke("write_url_to_clipboard", $viewState.currentImageFile.fullPath);
+    const copyImage = async (url: boolean) => {
+        if (url) {
+            await ipc.invoke("write_url_to_clipboard", $viewState.currentImageFile.fullPath);
+        } else {
+            await ipc.invoke("copy_image_to_clipboard", $viewState.currentImageFile.fullPath);
+        }
     };
 
     const changeTimestampMode = (timestampMode: Pic.Timestamp) => {
@@ -375,6 +382,10 @@
             if (e.key == "s") {
                 e.preventDefault();
                 await pin();
+            }
+
+            if (e.key == "c") {
+                copyImage(false);
             }
         }
 
