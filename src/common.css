@@ -76,6 +76,7 @@
 html, body{
     width:100%;
     height:100%;
+    overflow: hidden;
 }
 
 body{
@@ -88,6 +89,7 @@ div:focus:not(.menu-container){
 }
 
 .viewport{
+    position: relative;
     display: flex;
     flex-direction: column;
     width: 100%;

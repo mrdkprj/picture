@@ -213,6 +213,7 @@ fn to_icon(payload: ToIconArgs) -> Result<(), String> {
     image_helper::to_icon(payload)
 }
 
+#[allow(unused)]
 #[tauri::command]
 fn write_url_to_clipboard(window: WebviewWindow, payload: String) -> Result<(), String> {
     #[cfg(windows)]
@@ -222,6 +223,7 @@ fn write_url_to_clipboard(window: WebviewWindow, payload: String) -> Result<(), 
     zouni::clipboard::write_uris(window_handle, &[payload], zouni::Operation::Copy)
 }
 
+#[allow(unused)]
 #[tauri::command]
 fn copy_image_to_clipboard(window: WebviewWindow, payload: String) -> Result<(), String> {
     #[cfg(windows)]
