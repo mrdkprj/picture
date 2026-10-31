@@ -9,7 +9,7 @@
     import { Orientations, FORWARD, BACKWARD, Extensions, BROWSER_SHORTCUT_KEYS, OS } from "../constants";
     import { IPC } from "../ipc";
     import util from "../util";
-    import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+    import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
     import path from "../path";
     import { getDropFiles } from "../fileDropHandler";
     import EditPic from "../assets/EditPic.svelte";
@@ -275,15 +275,15 @@
     const exitFullscreen = async () => {
         dispatch({ type: "isFullscreen", value: false });
         // Cannot enter fullscreen if decoration is false
-        await WebviewWindow.getCurrent().setDecorations(false);
-        await WebviewWindow.getCurrent().setFullscreen(false);
+        await getCurrentWebviewWindow().setDecorations(false);
+        await getCurrentWebviewWindow().setFullscreen(false);
     };
 
     const enterFullscreen = async () => {
         dispatch({ type: "isFullscreen", value: !$viewState.isFullscreen });
         // Cannot enter fullscreen if decoration is false
-        await WebviewWindow.getCurrent().setDecorations(true);
-        await WebviewWindow.getCurrent().setFullscreen(true);
+        await getCurrentWebviewWindow().setDecorations(true);
+        await getCurrentWebviewWindow().setFullscreen(true);
     };
 
     const toggleFullscreen = async () => {

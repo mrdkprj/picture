@@ -6,7 +6,7 @@
     import Settings from "./settings";
     import util from "./util";
     import { IPC } from "./ipc";
-    import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+    import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
     const ipc = new IPC("main");
 
@@ -14,15 +14,15 @@
     let settings = new Settings();
 
     const onWindowSizeChanged = async () => {
-        const isFullscreen = await WebviewWindow.getCurrent().isFullscreen();
+        const isFullscreen = await getCurrentWebviewWindow().isFullscreen();
         if (isFullscreen) return;
 
-        const isMaximized = await WebviewWindow.getCurrent().isMaximized();
+        const isMaximized = await getCurrentWebviewWindow().isMaximized();
         appState.settings.isMaximized = isMaximized;
     };
 
     const toggleMaximize = async () => {
-        const renderer = WebviewWindow.getCurrent();
+        const renderer = getCurrentWebviewWindow();
         const maximized = await renderer.isMaximized();
         if (maximized) {
             await renderer.unmaximize();
@@ -37,7 +37,7 @@
     };
 
     const minimize = async () => {
-        await WebviewWindow.getCurrent().minimize();
+        await getCurrentWebviewWindow().minimize();
     };
 
     const prepare = async () => {
@@ -46,7 +46,7 @@
         await ipc.invoke("prepare_windows", appState.settings.preference);
         await ipc.invoke("listen_file_drop", "imageContainer");
 
-        const main = WebviewWindow.getCurrent();
+        const main = getCurrentWebviewWindow();
 
         await main.setPosition(util.toPhysicalPosition(appState.settings.bounds));
 
@@ -76,7 +76,7 @@
 
         await settings.save(appState.settings);
 
-        await WebviewWindow.getCurrent().close();
+        await getCurrentWebviewWindow().close();
     };
 
     onMount(() => {
