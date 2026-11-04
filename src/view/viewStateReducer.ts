@@ -33,6 +33,7 @@ export const initialViewState: ViewState = {
 type AppAction =
     | { type: "updateCurrentImage" }
     | { type: "updateImageDetail"; value: Pic.ImageDetail }
+    | { type: "clearCurrentImage" }
     | { type: "isFullscreen"; value: boolean }
     | { type: "pin"; value: string }
     | { type: "locked"; value: boolean }
@@ -63,6 +64,9 @@ const updater = (state: ViewState, action: AppAction): ViewState => {
         case "updateImageDetail": {
             return { ...state, currentImageFile: { ...state.currentImageFile, detail: action.value } };
         }
+
+        case "clearCurrentImage":
+            return { ...state, currentImageFile: EmptyImageFile };
 
         case "index": {
             const currentImageFile = appState.imageFiles.length ? appState.imageFiles[action.value] : EmptyImageFile;

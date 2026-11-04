@@ -7,6 +7,7 @@ type AppState = {
     workingImage: Pic.ImageFile;
     settings: Pic.Settings;
     imageFiles: Pic.ImageFile[];
+    pinOnClose: boolean;
 };
 
 export const appState: AppState = $state({
@@ -14,4 +15,5 @@ export const appState: AppState = $state({
     workingImage: EmptyImageFile,
     settings: DEFAULT_SETTINGS,
     imageFiles: [],
+    pinOnClose: false,
 });

@@ -2,7 +2,6 @@
     import { onMount } from "svelte";
     import Loader from "../assets/Loader.svelte";
     import History from "./History.svelte";
-    import icon from "../assets/icon.png";
     import { viewState, dispatch } from "./viewStateReducer";
     import { appState } from "../state.svelte";
     import { ImageTransform } from "../imageTransform";
@@ -22,6 +21,7 @@
     import NotFound from "../assets/NotFound.svelte";
     import { scale } from "svelte/transition";
     import GtkResize from "../GtkResize.svelte";
+    import TitleBar from "../TitleBar.svelte";
 
     let orientationIndex = 0;
     let imageArea: HTMLDivElement;
@@ -192,18 +192,16 @@
 
         try {
             await ipc.invoke("trash", imageFile.fullPath);
-
             dispatch({ type: "removeFile" });
 
-            if ($viewState.currentIndex > 0) {
-                dispatch({ type: "index", value: $viewState.currentIndex-- });
-            }
+            const nextIndex = $viewState.currentIndex > appState.imageFiles.length - 1 ? appState.imageFiles.length - 1 : $viewState.currentIndex;
 
-            if (appState.imageFiles.length - 1 > $viewState.currentIndex) {
-                dispatch({ type: "index", value: $viewState.currentIndex++ });
+            if (nextIndex >= 0 && nextIndex <= appState.imageFiles.length - 1) {
+                dispatch({ type: "index", value: nextIndex });
+                await fetchImage($viewState.currentIndex);
+            } else {
+                dispatch({ type: "clearCurrentImage" });
             }
-
-            await fetchImage($viewState.currentIndex);
         } catch (ex: any) {
             await util.showErrorMessage(ex);
         }
@@ -218,14 +216,6 @@
         appState.settings.fullPath = imageFile.fullPath;
         appState.settings.directory = path.dirname(appState.settings.fullPath);
         appState.settings.history[path.dirname(appState.settings.fullPath)] = path.basename(appState.settings.fullPath);
-    };
-
-    const toggleMaximize = async () => {
-        await ipc.send("toggle-maximize", {});
-    };
-
-    const minimize = async () => {
-        await ipc.send("minimize", {});
     };
 
     const reveal = async () => {
@@ -302,7 +292,7 @@
     const close = async () => {
         const imageFile = $viewState.currentImageFile;
 
-        if (imageFile.fullPath && appState.settings.history[imageFile.directory]) {
+        if (appState.pinOnClose && imageFile.fullPath && appState.settings.history[imageFile.directory]) {
             await pin();
         }
         await ipc.send("close", {});
@@ -381,6 +371,7 @@
 
             if (e.key == "s") {
                 e.preventDefault();
+                appState.pinOnClose = true;
                 await pin();
             }
 
@@ -536,6 +527,9 @@
     const onFileDrop = async (e: Pic.FileDropEvent) => {
         const files = getDropFiles(e);
         if (files.length) {
+            if (appState.pinOnClose && path.dirname(files[0]) != path.dirname(appState.workingImage.fullPath)) {
+                appState.pinOnClose = false;
+            }
             await loadFiles(files[0]);
         }
     };
@@ -558,7 +552,6 @@
         prepare();
         ipc.receive("contextmenu-event", mainContextMenuCallback);
         ipc.receiveTauri("tauri://drag-drop", onFileDrop);
-
         imageTransform.init(imageArea, img);
         imageTransform.on("transformchange", changeInfoTexts);
         imageTransform.on("dragstart", onImageDragStart);
@@ -586,56 +579,39 @@
     {#if util.isLinux()}
         <GtkResize />
     {/if}
-    <div class="title-bar" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-        <div class="icon-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-            <img class="ico" src={icon} alt="" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null} />
-            <div class="title" title={$viewState.currentImageFile.fileName} data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-                {$viewState.currentImageFile.fileName}
+    <TitleBar titleText={$viewState.currentImageFile.fileName} titleTooltip={$viewState.currentImageFile.fileName} closeText={"&times;"} {close}>
+        {#snippet center()}
+            <div class="btn can-focus" onclick={openEditDialog} onkeydown={handelKeydown} role="button" tabindex="-1">
+                <EditPic />
             </div>
-        </div>
-        <div class="menu header" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-            <div class="btn-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-                <div class="btn can-focus" onclick={openEditDialog} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <EditPic />
-                </div>
-                <div class="btn can-focus" onclick={rotateLeft} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <RotateLeft />
-                </div>
-                <div class="btn can-focus" onclick={deleteFile} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <Delete />
-                </div>
-                <div class="btn can-focus" onclick={rotateRight} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <RotateRight />
-                </div>
-                <div class="btn can-focus" onclick={pin} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    {#if appState.settings.history[$viewState.currentImageFile.directory] == $viewState.currentImageFile.fileName}
-                        <Pinned />
-                    {:else}
-                        <Pin />
-                    {/if}
-                </div>
-                <div class="btn can-focus" onclick={showContextMenu} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <OpenMenu />
-                </div>
+            <div class="btn can-focus" onclick={rotateLeft} onkeydown={handelKeydown} role="button" tabindex="-1">
+                <RotateLeft />
             </div>
-        </div>
-        <div class="window-area">
-            <div class="info-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-                <div class="text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-                    {`${$viewState.currentImageFile.detail.renderedWidth} x ${$viewState.currentImageFile.detail.renderedHeight}`}
-                </div>
-                <div class="text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{$viewState.scaleRate}</div>
-                <div class="text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{$viewState.counter}</div>
+            <div class="btn can-focus" onclick={deleteFile} onkeydown={handelKeydown} role="button" tabindex="-1">
+                <Delete />
             </div>
-            <div class="control-area">
-                <div class="minimize" onclick={minimize} onkeydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
-                <div class="maximize" onclick={toggleMaximize} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <div class:maxbtn={appState.settings.isMaximized} class:minbtn={!appState.settings.isMaximized}></div>
-                </div>
-                <div class="close" onclick={close} onkeydown={handelKeydown} role="button" tabindex="-1">&times;</div>
+            <div class="btn can-focus" onclick={rotateRight} onkeydown={handelKeydown} role="button" tabindex="-1">
+                <RotateRight />
             </div>
-        </div>
-    </div>
+            <div class="btn can-focus" onclick={pin} onkeydown={handelKeydown} role="button" tabindex="-1">
+                {#if appState.settings.history[$viewState.currentImageFile.directory] == $viewState.currentImageFile.fileName}
+                    <Pinned />
+                {:else}
+                    <Pin />
+                {/if}
+            </div>
+            <div class="btn can-focus" onclick={showContextMenu} onkeydown={handelKeydown} role="button" tabindex="-1">
+                <OpenMenu />
+            </div>
+        {/snippet}
+        {#snippet info()}
+            <div class="text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
+                {`${$viewState.currentImageFile.detail.renderedWidth} x ${$viewState.currentImageFile.detail.renderedHeight}`}
+            </div>
+            <div class="text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{$viewState.scaleRate}</div>
+            <div class="text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{$viewState.counter}</div>
+        {/snippet}
+    </TitleBar>
 
     <div class="container">
         <Loader show={$viewState.locked} />

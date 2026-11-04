@@ -63,6 +63,7 @@
         } else if (appState.settings.fullPath) {
             const found = await util.exists(appState.settings.fullPath);
             if (found) {
+                appState.pinOnClose = true;
                 appState.workingImage = await util.toImageFile(appState.settings.fullPath);
             }
         }

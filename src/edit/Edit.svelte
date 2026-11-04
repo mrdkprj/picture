@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import Loader from "../assets/Loader.svelte";
-    import icon from "../assets/icon.png";
     import Info from "../assets/Info.svelte";
     import Clip from "../assets/Clip.svelte";
     import Redo from "../assets/Redo.svelte";
@@ -20,6 +19,8 @@
     import path from "../path";
     import { scale } from "svelte/transition";
     import GtkResize from "../GtkResize.svelte";
+    import TitleBar from "../TitleBar.svelte";
+    import Grow from "../assets/Grow.svelte";
 
     const imageTransform = new ImageTransform();
     const ipc = new IPC("main");
@@ -472,14 +473,6 @@
         }
     };
 
-    const minimize = async () => {
-        await ipc.send("minimize", {});
-    };
-
-    const toggleMaximize = async () => {
-        await ipc.send("toggle-maximize", {});
-    };
-
     const onTransformChange = () => {
         if (imageTransform.isResized() && $editState.editMode == "Clip") {
             changeEditMode("Resize");
@@ -544,49 +537,37 @@
     {#if util.isLinux()}
         <GtkResize />
     {/if}
-    <div
-        class="title-bar"
-        class:can-undo={$editState.canUndo}
-        class:can-redo={$editState.canRedo}
-        class:resized={$editState.isResized}
-        class:edited={$editState.isEdited}
-        class:clipping={$editState.editMode == "Clip"}
-        class:shrinkable={$editState.allowShrink}
-        class:is-icon={$editState.currentImageFile.detail.format == "ico"}
-        data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}
-    >
-        <div class="icon-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-            <img class="ico" src={icon} alt="" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null} />
-            <span id="title">{$editState.currentImageFile.fileName}</span>
-        </div>
-        <div class="menu header">
-            <div class="btn-area">
-                <div class="btn clip" title="clip" onclick={() => changeEditMode("Clip")} onkeydown={handelKeydown} role="button" tabindex="-1"><Clip /></div>
-                <div class="btn resize" title="resize" onclick={resizeImage} onkeydown={handelKeydown} role="button" tabindex="-1"><Resize /></div>
-                <div class="btn size" title="change size" onclick={openSizeDialog} onkeydown={handelKeydown} role="button" tabindex="-1"><Info /></div>
-                <div class="separator btn"></div>
-                <div class="btn undo" title="Undo" onclick={undo} onkeydown={handelKeydown} role="button" tabindex="-1"><Undo /></div>
-                <div class="btn redo" title="Redo" onclick={redo} onkeydown={handelKeydown} role="button" tabindex="-1"><Redo /></div>
-                <div class="btn shrink" title="Enable Shrink" onclick={() => changeResizeMode(!imageTransform.isShrinkable())} onkeydown={handelKeydown} role="button" tabindex="-1"><Shrink /></div>
-                <div class="separator btn"></div>
-                <div class="btn save-copy" title="Save Copy" onclick={() => saveImage(true)} onkeydown={handelKeydown} role="button" tabindex="-1"><SaveCopy /></div>
-                <div class="btn save" title="Save" onclick={() => saveImage(false)} onkeydown={handelKeydown} role="button" tabindex="-1"><Save /></div>
+    <TitleBar titleText={$editState.currentImageFile.fileName} titleTooltip={$editState.currentImageFile.fileName} closeText={"&larr;"} {close}>
+        {#snippet center()}
+            <div class="btn clip" title="clip" onclick={() => changeEditMode("Clip")} onkeydown={handelKeydown} role="button" tabindex="-1"><Clip /></div>
+            <div class="btn resize" title="resize" onclick={resizeImage} onkeydown={handelKeydown} role="button" tabindex="-1"><Resize /></div>
+            <div class="btn size" title="change size" onclick={openSizeDialog} onkeydown={handelKeydown} role="button" tabindex="-1"><Info /></div>
+            <div class="separator btn"></div>
+            <div class="btn undo" title="Undo" onclick={undo} onkeydown={handelKeydown} role="button" tabindex="-1"><Undo /></div>
+            <div class="btn redo" title="Redo" onclick={redo} onkeydown={handelKeydown} role="button" tabindex="-1"><Redo /></div>
+            <div
+                class="btn shrink"
+                title={$editState.allowShrink ? "Disable Shrink" : "Enable Shrink"}
+                onclick={() => changeResizeMode(!imageTransform.isShrinkable())}
+                onkeydown={handelKeydown}
+                role="button"
+                tabindex="-1"
+            >
+                {#if $editState.allowShrink}
+                    <Grow />
+                {:else}
+                    <Shrink />
+                {/if}
             </div>
-        </div>
-        <div class="window-area">
-            <div class="info-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
-                <div class="scale-text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{`${$editState.renderedWidth} x ${$editState.renderedHeight}`}</div>
-                <div class="scale-text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{`${Math.floor($editState.imageRatio * 100)}%`}</div>
-            </div>
-            <div class="control-area">
-                <div class="minimize" onclick={minimize} onkeydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
-                <div class="maximize" onclick={toggleMaximize} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <div class:maxbtn={appState.settings.isMaximized} class:minbtn={!appState.settings.isMaximized}></div>
-                </div>
-                <div class="close" onclick={close} onkeydown={handelKeydown} role="button" tabindex="-1">&larr;</div>
-            </div>
-        </div>
-    </div>
+            <div class="separator btn"></div>
+            <div class="btn save-copy" title="Save Copy" onclick={() => saveImage(true)} onkeydown={handelKeydown} role="button" tabindex="-1"><SaveCopy /></div>
+            <div class="btn save" title="Save" onclick={() => saveImage(false)} onkeydown={handelKeydown} role="button" tabindex="-1"><Save /></div>
+        {/snippet}
+        {#snippet info()}
+            <div class="scale-text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{`${$editState.renderedWidth} x ${$editState.renderedHeight}`}</div>
+            <div class="scale-text" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>{`${Math.floor($editState.imageRatio * 100)}%`}</div>
+        {/snippet}
+    </TitleBar>
 
     <div class="container clickable" draggable="false">
         <Loader show={$editState.loading} />
