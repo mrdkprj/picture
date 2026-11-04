@@ -167,6 +167,12 @@
         }
     };
 
+    const onKeyup = (e: KeyboardEvent) => {
+        if (e.key == "F12") {
+            ipc.invoke("open_dev_tool", null);
+        }
+    };
+
     const onKeydown = (e: KeyboardEvent) => {
         if (e.ctrlKey && BROWSER_SHORTCUT_KEYS.includes(e.key)) {
             e.preventDefault();
@@ -531,7 +537,7 @@
 </script>
 
 <svelte:window onresize={onWindowResize} oncontextmenu={(e) => e.preventDefault()} />
-<svelte:document onkeydown={onKeydown} onmousedown={onMouseDown} onmousemove={onMousemove} onmouseup={onMouseup} />
+<svelte:document onkeydown={onKeydown} onkeyup={onKeyup} onmousedown={onMouseDown} onmousemove={onMousemove} onmouseup={onMouseup} />
 
 <div in:scale={{ delay: 0, duration: DURATION }} class="viewport edit" class:dragging={$editState.dragging}>
     {#if util.isLinux()}

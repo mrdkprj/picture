@@ -29,7 +29,7 @@
     style:--toggleButtonHover={"var(--primary-button-hover-color2)"}
 >
     <div class="titlebar-drag-region"></div>
-    <div class="titlebar-left">
+    <div class="titlebar-left" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
         <div class="icon-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
             <img class="ico" src={icon} alt="" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null} />
             <div class="title" title={titleTooltip} data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
@@ -40,19 +40,17 @@
     <div class="titlebar-center">
         {@render center()}
     </div>
-    <div class="titlebar-right">
-        <div class="info-area" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
+    <div class="titlebar-right" data-tauri-drag-region={navigator.userAgent.includes(OS.linux) ? true : null}>
+        <div class="info-area">
             {@render info()}
         </div>
-        <div class="window-area">
-            <div class="control-area">
-                <div class="minimize" onclick={minimize} onkeydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
-                <div class="maximize" onclick={toggleMaximize} onkeydown={handelKeydown} role="button" tabindex="-1">
-                    <div class:maxbtn={appState.settings.isMaximized} class:minbtn={!appState.settings.isMaximized}></div>
-                </div>
-                <div class="close" onclick={close} onkeydown={handelKeydown} role="button" tabindex="-1">{@html closeText}</div>
-            </div>
+    </div>
+    <div class="window-area">
+        <div class="minimize" onclick={minimize} onkeydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
+        <div class="maximize" onclick={toggleMaximize} onkeydown={handelKeydown} role="button" tabindex="-1">
+            <div class:maxbtn={appState.settings.isMaximized} class:minbtn={!appState.settings.isMaximized}></div>
         </div>
+        <div class="close" onclick={close} onkeydown={handelKeydown} role="button" tabindex="-1">{@html closeText}</div>
     </div>
 </div>
 
@@ -79,7 +77,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        width: 30%;
+        width: 100%;
+        height: 100%;
     }
 
     .ico {
@@ -105,16 +104,13 @@
     }
 
     .window-area {
-        height: 100%;
         display: flex;
-        align-items: center;
-    }
-
-    .control-area {
-        display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
         align-items: center;
         height: 100%;
+        position: relative;
+        min-width: fit-content;
+        order: 3;
     }
 
     .minimize,
@@ -205,7 +201,7 @@
 
     .titlebar-right {
         order: 2;
-        width: 20%;
+        width: calc(20% - 135px);
         min-width: min-content;
         flex-grow: 2;
         justify-content: flex-end;

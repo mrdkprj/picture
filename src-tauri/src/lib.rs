@@ -256,6 +256,11 @@ fn prepare_windows(window: WebviewWindow, payload: Settings) -> tauri::Result<bo
     Ok(true)
 }
 
+#[tauri::command]
+fn open_dev_tool(window: WebviewWindow) {
+    window.open_devtools();
+}
+
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
@@ -270,6 +275,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_init_args,
             prepare_windows,
+            open_dev_tool,
             readdir,
             change_theme,
             reveal,

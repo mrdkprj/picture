@@ -129,6 +129,7 @@ type MessageResult = {
 type TauriCommandMap = {
     prepare_windows: TauriCommand<Pic.Preference, boolean>;
     get_init_args: TauriCommand<null, string[]>;
+    open_dev_tool: TauriCommand<null, null>;
     readdir: TauriCommand<string, Dirent[]>;
     open_context_menu: TauriCommand<Pic.Position, null>;
     change_theme: TauriCommand<Pic.Theme, null>;

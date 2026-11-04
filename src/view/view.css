@@ -1,3 +1,8 @@
+.pic {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 .close:hover{
     background-color: var(--primary-highlight-color);
     color: var(--primary-forecolor);
